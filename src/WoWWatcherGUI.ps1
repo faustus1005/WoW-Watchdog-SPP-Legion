@@ -5,7 +5,7 @@
 
 [CmdletBinding()]
 param(
-    # Portable mode / overrides (optional)
+    # Portable mode / overrides
     [switch]$Portable,
     [string]$AppRootOverride,
     [string]$DataDirOverride,
@@ -97,7 +97,7 @@ function Test-IsAdmin {
 
 if (-not (Test-IsAdmin) -and (-not $script:WwIsPortable)) {
 
-    # Relaunch elevated. Prefer restarting the script when running as .ps1, otherwise restart this EXE (PS2EXE).
+    # Relaunch elevated. Prefer restarting the script when running as .ps1, otherwise restart this EXE
     $procExe    = [System.Diagnostics.Process]::GetCurrentProcess().MainModule.FileName
     $scriptPath = $MyInvocation.MyCommand.Path
 
@@ -172,7 +172,7 @@ function Write-JsonFile {
     $Object | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $Path -Encoding UTF8
 }
 
-$AppVersion = [version]"1.2.3"
+$AppVersion = [version]"1.2.4"
 $RepoOwner  = "FAUSTUS1005"
 $RepoName   = "WoW-Watchdog"
 
@@ -245,6 +245,8 @@ $SecretsPath = if ($SecretsPathOverride) { $SecretsPathOverride } else { $prefer
 $LogPath        = Join-Path $script:LogsDir "watchdog.log"
 $HeartbeatFile  = Join-Path $DataDir "watchdog.heartbeat"
 $StopSignalFile = Join-Path $DataDir "watchdog.stop"
+$LogMaxBytes    = 5242880
+$LogRetainCount = 5
 
 $ServiceName    = "WoWWatchdog"
 
@@ -1453,9 +1455,10 @@ $xaml = @"
   <TabItem Header="Main">
   <Grid>
     <Grid.RowDefinitions>
-      <RowDefinition Height="*" MinHeight="420"/>
-      <RowDefinition Height="6"/>
-      <RowDefinition Height="300" MinHeight="180"/>
+    <!-- Give more vertical space to Live Log when the window is tall -->
+    <RowDefinition Height="2*" MinHeight="320"/>
+    <RowDefinition Height="6"/>
+    <RowDefinition Height="3*" MinHeight="240"/>
     </Grid.RowDefinitions>
 
     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto"
@@ -2887,6 +2890,94 @@ $xaml = @"
 </TabItem>
 
 <!-- ================================================= -->
+<!-- TAB: Logging                                    -->
+<!-- ================================================= -->
+<TabItem Header="Logging" x:Name="TabLogging">
+  <Grid Margin="12">
+    <GroupBox Margin="0" Foreground="White" HorizontalAlignment="Stretch">
+      <GroupBox.Header>
+        <TextBlock Text="Logfile Output" Foreground="#FFBDDCFF" FontWeight="SemiBold"/>
+      </GroupBox.Header>
+
+      <GroupBox.Background>
+        <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+          <GradientStop Color="#FF151B28" Offset="0.0"/>
+          <GradientStop Color="#FF111623" Offset="1.0"/>
+        </LinearGradientBrush>
+      </GroupBox.Background>
+
+      <Grid Margin="10">
+        <Grid.RowDefinitions>
+          <RowDefinition Height="Auto"/>
+          <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <Grid Grid.Row="0" Margin="0,0,0,8" Panel.ZIndex="10">
+          <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="*"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+            <ColumnDefinition Width="Auto"/>
+          </Grid.ColumnDefinitions>
+
+          <TextBlock Grid.Column="0"
+                     Text="Log file:"
+                     Foreground="#FF86B5E5"
+                     VerticalAlignment="Center"
+                     Margin="0,0,8,0"/>
+
+          <ComboBox x:Name="CmbLogfileSelect"
+                    Grid.Column="1"
+                    MinHeight="26"
+                    Margin="0,0,10,0"
+                    Background="#FF0F141F"
+                    Foreground="White"
+                    BorderBrush="#FF345A8A"
+                    DisplayMemberPath="Name"
+                    SelectedValuePath="Path"/>
+
+          <Button x:Name="BtnRefreshLogfiles"
+                  Grid.Column="2"
+                  Content="Refresh"
+                  Width="90"
+                  MinHeight="28"
+                  Margin="0,0,10,0"
+                  Style="{StaticResource BtnSecondary}"/>
+
+          <CheckBox x:Name="ChkLogfileTail"
+                    Grid.Column="3"
+                    Content="Tail log"
+                    Foreground="White"
+                    Margin="0,0,10,0"
+                    VerticalAlignment="Center"/>
+
+          <Button x:Name="BtnClearLogfileOutput"
+                  Grid.Column="4"
+                  Content="Clear"
+                  Style="{StaticResource BtnSecondary}"/>
+        </Grid>
+
+        <TextBox x:Name="TxtLogfileOutput"
+                 Grid.Row="1"
+                 VerticalAlignment="Stretch"
+                 MinHeight="420"
+                 FontFamily="Consolas"
+                 FontSize="13"
+                 Background="#FF0F141F"
+                 Foreground="White"
+                 BorderBrush="#FF345A8A"
+                 IsReadOnly="True"
+                 AcceptsReturn="True"
+                 TextWrapping="NoWrap"
+                 VerticalScrollBarVisibility="Auto"
+                 HorizontalScrollBarVisibility="Auto"/>
+      </Grid>
+    </GroupBox>
+  </Grid>
+</TabItem>
+
+<!-- ================================================= -->
   <!-- TAB 4: Updates                                   -->
   <!-- ================================================= -->
   <TabItem Header="Updates">
@@ -3292,6 +3383,14 @@ $TxtWorldLogPath     = Assert-Control $Window "TxtWorldLogPath"
 $BtnBrowseWorldLog   = Assert-Control $Window "BtnBrowseWorldLog"
 $BtnClearWorldLog    = Assert-Control $Window "BtnClearWorldLog"
 $TxtWorldLogOutput   = Assert-Control $Window "TxtWorldLogOutput"
+
+# Tab: Logging
+$TabLogging          = $Window.FindName("TabLogging")
+$CmbLogfileSelect    = Assert-Control $Window "CmbLogfileSelect"
+$BtnRefreshLogfiles  = Assert-Control $Window "BtnRefreshLogfiles"
+$ChkLogfileTail      = Assert-Control $Window "ChkLogfileTail"
+$BtnClearLogfileOutput = Assert-Control $Window "BtnClearLogfileOutput"
+$TxtLogfileOutput    = Assert-Control $Window "TxtLogfileOutput"
 # -------------------------------------------------
 # Worldserver log Browse binding (early + multi-event)
 # -------------------------------------------------
@@ -6600,11 +6699,38 @@ function Get-NtfyAuthHeaders {
 # -------------------------------------------------
 # GUI log helper
 # -------------------------------------------------
+function Rotate-GuiLogIfNeeded {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [int64]$MaxBytes = 5242880,
+        [int]$Keep = 5
+    )
+
+    try {
+        if (-not (Test-Path -LiteralPath $Path)) { return }
+        if ($MaxBytes -le 0 -or $Keep -le 0) { return }
+
+        $len = (Get-Item -LiteralPath $Path).Length
+        if ($len -lt $MaxBytes) { return }
+
+        for ($i = $Keep - 1; $i -ge 1; $i--) {
+            $src = "$Path.$i"
+            $dst = "$Path." + ($i + 1)
+            if (Test-Path -LiteralPath $src) {
+                Move-Item -LiteralPath $src -Destination $dst -Force
+            }
+        }
+
+        Move-Item -LiteralPath $Path -Destination "$Path.1" -Force
+    } catch { }
+}
+
 function Add-GuiLog {
     param([string]$Message)
 
     try {
         $tsFile = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+        Rotate-GuiLogIfNeeded -Path $LogPath -MaxBytes $LogMaxBytes -Keep $LogRetainCount
         Add-Content -Path $LogPath -Value "[$tsFile] $Message" -Encoding UTF8
     } catch { }
 
@@ -7530,6 +7656,7 @@ function WorldLogTail-Tick {
             Append-WorldLogOutput ("`r`n[World log] ERROR: Tail read failed: {0}`r`n" -f $_.Exception.Message)
         } catch { }
         try { Stop-WorldLogTail } catch { }
+    try { Stop-LogfileTail } catch { }
     }
 }
 
@@ -7592,6 +7719,253 @@ function Start-WorldLogTail {
     }
 }
 
+
+
+# -------------------------------------------------
+# Logfile Tail (Logging Tab)
+# - Shows live output by tailing any selected .log file in <RepackRoot>\logs
+# - Uses the same DispatcherTimer tail pattern as the Worldserver log tail
+# -------------------------------------------------
+$script:LogfileTailTimer  = $null
+$script:LogfileTailStream = $null
+$script:LogfileTailReader = $null
+$script:LogfileTailPos    = 0L
+$script:LogfileTailPath   = ""
+
+function Append-LogfileOutput {
+    param([string]$Text)
+
+    if ([string]::IsNullOrEmpty($Text) -or -not $TxtLogfileOutput) { return }
+
+    try {
+        # Normalize LF -> CRLF for readability
+        $t = $Text -replace "`r?`n", "`r`n"
+        $TxtLogfileOutput.AppendText($t)
+        $TxtLogfileOutput.ScrollToEnd()
+    } catch {
+        try { Add-GuiLog ("ERROR: Logfile output append failed: {0}" -f $_.Exception.Message) } catch { }
+    }
+}
+
+function Get-RepackLogsFolder {
+    # Logs folder is expected to be inside the repack root.
+    $root = ""
+    try { $root = ([string]$TxtRepackRoot.Text).Trim() } catch { $root = "" }
+
+    if ([string]::IsNullOrWhiteSpace($root)) { return "" }
+
+    # If the user points directly at the logs folder, accept it.
+    try {
+        $leaf = (Split-Path -Leaf $root)
+        if ($leaf -and ($leaf -ieq "logs") -and (Test-Path -LiteralPath $root -PathType Container)) {
+            return $root
+        }
+    } catch { }
+
+    $candidates = @(
+        (Join-Path $root "logs"),
+        (Join-Path $root "Logs")
+    )
+
+    foreach ($c in $candidates) {
+        try {
+            if (Test-Path -LiteralPath $c -PathType Container) { return $c }
+        } catch { }
+    }
+
+    # Best-effort fallback to the conventional path even if it doesn't exist yet.
+    return (Join-Path $root "logs")
+}
+
+function Refresh-LogfileDropdown {
+    try {
+        if (-not $CmbLogfileSelect) { return }
+
+        $logsDir = Get-RepackLogsFolder
+        try { $CmbLogfileSelect.Items.Clear() } catch { }
+
+        if ([string]::IsNullOrWhiteSpace($logsDir) -or -not (Test-Path -LiteralPath $logsDir -PathType Container)) {
+            Append-LogfileOutput ("`r`n[Logfile] Logs folder not found: {0}`r`n" -f $logsDir)
+            return
+        }
+
+        $files = @()
+        try {
+            $files = Get-ChildItem -LiteralPath $logsDir -File -Filter "*.log" -ErrorAction SilentlyContinue |
+                     Sort-Object LastWriteTime -Descending
+        } catch { $files = @() }
+
+        foreach ($f in $files) {
+            try {
+                $item = [pscustomobject]@{ Name = $f.Name; Path = $f.FullName }
+                [void]$CmbLogfileSelect.Items.Add($item)
+            } catch { }
+        }
+
+        if ($CmbLogfileSelect.Items.Count -gt 0 -and -not $CmbLogfileSelect.SelectedItem) {
+            $CmbLogfileSelect.SelectedIndex = 0
+        }
+
+        Append-LogfileOutput ("`r`n[Logfile] Found {0} .log file(s) in: {1}`r`n" -f $CmbLogfileSelect.Items.Count, $logsDir)
+    } catch {
+        try {
+            Add-GuiLog ("ERROR: Refresh-LogfileDropdown failed: {0}" -f $_.Exception.Message)
+            Append-LogfileOutput ("`r`n[Logfile] ERROR: Refresh failed: {0}`r`n" -f $_.Exception.Message)
+        } catch { }
+    }
+}
+
+function Resolve-SelectedLogfilePath {
+    $p = ""
+
+    try {
+        if ($CmbLogfileSelect -and $CmbLogfileSelect.SelectedItem) {
+            $si = $CmbLogfileSelect.SelectedItem
+            if ($si -is [string]) {
+                $p = [string]$si
+            } elseif ($si.PSObject -and $si.PSObject.Properties.Match("Path").Count -gt 0) {
+                $p = [string]$si.Path
+            }
+        }
+    } catch { }
+
+    if ([string]::IsNullOrWhiteSpace($p)) {
+        try { $p = [string]$CmbLogfileSelect.SelectedValue } catch { }
+    }
+
+    return ($p + "").Trim()
+}
+
+function Stop-LogfileTail {
+    try {
+        if ($script:LogfileTailTimer) { $script:LogfileTailTimer.Stop() }
+    } catch { }
+
+    try { if ($script:LogfileTailReader) { $script:LogfileTailReader.Dispose() } } catch { }
+    try { if ($script:LogfileTailStream) { $script:LogfileTailStream.Dispose() } } catch { }
+
+    $script:LogfileTailReader = $null
+    $script:LogfileTailStream = $null
+    $script:LogfileTailPos    = 0L
+    $script:LogfileTailPath   = ""
+}
+
+function LogfileTail-Tick {
+    if (-not $script:LogfileTailStream -or -not $script:LogfileTailReader) { return }
+
+    try {
+        $fs = $script:LogfileTailStream
+        $sr = $script:LogfileTailReader
+
+        $len = 0L
+        try { $len = $fs.Length } catch { $len = 0L }
+
+        # Handle truncation / rotation
+        if ($len -lt $script:LogfileTailPos) {
+            $script:LogfileTailPos = 0L
+            Append-LogfileOutput "`r`n[Logfile] Log was truncated/rotated; restarting from beginning.`r`n"
+        }
+
+        $backlog = $len - $script:LogfileTailPos
+        if ($backlog -le 0) { return }
+
+        # Safety: if we fell behind badly, jump near the end to keep UI responsive
+        if ($backlog -gt 2097152) {
+            $jump = 131072
+            $script:LogfileTailPos = [math]::Max(0L, $len - $jump)
+            Append-LogfileOutput ("`r`n[Logfile] Large backlog detected ({0:N0} bytes). Jumping near end...`r`n" -f $backlog)
+        }
+
+        $sr.DiscardBufferedData()
+        [void]$fs.Seek($script:LogfileTailPos, [System.IO.SeekOrigin]::Begin)
+
+        $newText = $sr.ReadToEnd()
+        $script:LogfileTailPos = $fs.Position
+
+        if (-not [string]::IsNullOrEmpty($newText)) {
+            Append-LogfileOutput $newText
+        }
+    } catch {
+        try {
+            Add-GuiLog ("ERROR: Logfile tail read failed: {0}" -f $_.Exception.Message)
+            Append-LogfileOutput ("`r`n[Logfile] ERROR: Tail read failed: {0}`r`n" -f $_.Exception.Message)
+        } catch { }
+        try { Stop-LogfileTail } catch { }
+    }
+}
+
+function Start-LogfileTail {
+    param(
+        [switch]$StartAtEnd,
+        [string]$Path
+    )
+
+    $p = ($Path + "").Trim()
+    if ([string]::IsNullOrWhiteSpace($p)) {
+        $p = Resolve-SelectedLogfilePath
+    }
+
+    if ([string]::IsNullOrWhiteSpace($p)) {
+        Append-LogfileOutput "`r`n[Logfile] No log file selected.`r`n"
+        return
+    }
+
+    if (-not (Test-Path -LiteralPath $p)) {
+        Append-LogfileOutput ("`r`n[Logfile] Log file not found: {0}`r`n" -f $p)
+        return
+    }
+
+    # If the file changed, clear the view so output doesn't mix across files.
+    try {
+        if ($script:LogfileTailPath -and ($script:LogfileTailPath -ne $p)) {
+            $TxtLogfileOutput.Clear()
+        }
+    } catch { }
+
+    # Restart from scratch
+    Stop-LogfileTail
+
+    try {
+        # Keep the file open with sharing so writers can continue writing
+        $fs = New-Object System.IO.FileStream($p, [System.IO.FileMode]::Open, [System.IO.FileAccess]::Read, [System.IO.FileShare]::ReadWrite)
+        $sr = New-Object System.IO.StreamReader($fs, [System.Text.Encoding]::UTF8, $true)  # detect BOM
+
+        $script:LogfileTailStream = $fs
+        $script:LogfileTailReader = $sr
+        $script:LogfileTailPath   = $p
+
+        $len = 0L
+        try { $len = $fs.Length } catch { $len = 0L }
+
+        if ($StartAtEnd) {
+            $script:LogfileTailPos = $len
+            Append-LogfileOutput ("`r`n[Logfile] Tailing: {0} (from end)`r`n" -f $p)
+        } else {
+            # Show last ~128KB so the user sees context immediately
+            $window = 131072L
+            $start = 0L
+            if ($len -gt $window) { $start = $len - $window }
+            $script:LogfileTailPos = $start
+            Append-LogfileOutput ("`r`n[Logfile] Tailing: {0} (showing recent output)`r`n" -f $p)
+            LogfileTail-Tick
+        }
+
+        if (-not $script:LogfileTailTimer) {
+            $t = New-Object System.Windows.Threading.DispatcherTimer
+            $t.Interval = [TimeSpan]::FromMilliseconds(500)
+            $t.add_Tick({ LogfileTail-Tick })
+            $script:LogfileTailTimer = $t
+        }
+
+        $script:LogfileTailTimer.Start()
+    } catch {
+        try {
+            Add-GuiLog ("ERROR: Logfile tail start failed: {0}" -f $_.Exception.Message)
+            Append-LogfileOutput ("`r`n[Logfile] ERROR: Tail start failed: {0}`r`n" -f $_.Exception.Message)
+        } catch { }
+        try { Stop-LogfileTail } catch { }
+    }
+}
 function Find-VisualParentButton {
     param($Obj)
 
@@ -8202,6 +8576,52 @@ $BtnClearWorldLog.Add_Click({
     } catch { }
 })
 
+
+# Logging Tab: Logfile Tail
+try {
+    if ($TabLogging) {
+        $TabLogging.Add_Selected({
+            try { Refresh-LogfileDropdown } catch { }
+        })
+    }
+} catch { }
+
+$BtnRefreshLogfiles.Add_Click({
+    try { Refresh-LogfileDropdown } catch { }
+})
+
+$CmbLogfileSelect.Add_SelectionChanged({
+    try {
+        if (-not $CmbLogfileSelect.SelectedItem) { return }
+
+        # Auto-enable tail when a file is selected (matches the World log browse behavior)
+        if ($ChkLogfileTail) {
+            if (-not $ChkLogfileTail.IsChecked) {
+                $ChkLogfileTail.IsChecked = $true   # Checked handler will start the tail
+            } else {
+                Start-LogfileTail
+            }
+        } else {
+            Start-LogfileTail
+        }
+    } catch { }
+})
+
+$ChkLogfileTail.Add_Checked({
+    try { Start-LogfileTail } catch { }
+})
+$ChkLogfileTail.Add_Unchecked({
+    try { Stop-LogfileTail } catch { }
+})
+
+$BtnClearLogfileOutput.Add_Click({
+    try { $TxtLogfileOutput.Clear() } catch { }
+    try {
+        if ($ChkLogfileTail -and $ChkLogfileTail.IsChecked) {
+            Start-LogfileTail -StartAtEnd
+        }
+    } catch { }
+})
 $BtnStartWatchdog.Add_Click({ Start-WatchdogPreferred })
 $BtnStopWatchdog.Add_Click({ Stop-WatchdogPreferred })
 $BtnTestNtfy.Add_Click({ Send-NTFYTest })
@@ -8280,6 +8700,7 @@ $timer.Start()
 $Window.add_Closing({
     try { Disconnect-WorldTelnet -Silent } catch { }
     try { Stop-WorldLogTail } catch { }
+    try { Stop-LogfileTail } catch { }
 })
 
 # -------------------------------------------------
