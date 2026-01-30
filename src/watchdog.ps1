@@ -31,7 +31,7 @@ if (-not (Test-Path $DataDir)) {
 }
 
 $LogFile         = Join-Path $DataDir "watchdog.log"
-$StopSignalFile  = Join-Path $DataDir "stop_watchdog.txt"
+$StopSignalFile  = Join-Path $DataDir "watchdog.stop"
 $ConfigPath      = Join-Path $DataDir "config.json"
 $HeartbeatFile   = Join-Path $DataDir "watchdog.heartbeat"      # GUI checks timestamp freshness
 $StatusFile      = Join-Path $DataDir "watchdog.status.json"    # GUI reads richer status
@@ -219,8 +219,36 @@ function Test-ProcessRoleRunning {
     param(
         [Parameter(Mandatory)]
         [ValidateSet("MySQL","Authserver","Worldserver")]
-        [string]$Role
+        [string]$Role,
+
+        [string]$ExpectedPath
     )
+
+    $expectedExe = $null
+    if (-not [string]::IsNullOrWhiteSpace($ExpectedPath) -and $ExpectedPath -match '\.exe$') {
+        $expectedExe = $ExpectedPath
+    }
+
+    if ($expectedExe) {
+        $expectedExeFull = $expectedExe
+        try { $expectedExeFull = [System.IO.Path]::GetFullPath($expectedExe) } catch { }
+
+        $expectedName = [System.IO.Path]::GetFileNameWithoutExtension($expectedExe)
+        $procs = @()
+        try { $procs = Get-Process -Name $expectedName -ErrorAction SilentlyContinue } catch { }
+
+        foreach ($proc in $procs) {
+            try {
+                $procPath = $proc.Path
+                if (-not $procPath) { $procPath = $proc.MainModule.FileName }
+                if (-not $procPath) { continue }
+                try { $procPath = [System.IO.Path]::GetFullPath($procPath) } catch { }
+                if ($procPath -and ($procPath -ieq $expectedExeFull)) { return $true }
+            } catch { }
+        }
+
+        return $false
+    }
 
     foreach ($p in $ProcessAliases[$Role]) {
         try {
@@ -305,7 +333,7 @@ function Ensure-ConfigSchema {
 }
 
 function Load-ConfigSafe {
-    if (-not (Test-Path $ConfigPath)) {
+    if (-not (Test-Path -LiteralPath $ConfigPath)) {
         if ($global:LastConfigLoadState -ne "MissingConfig") {
             Log "config.json missing at $ConfigPath. Watchdog idle (will retry)."
             $global:LastConfigLoadState = "MissingConfig"
@@ -316,7 +344,7 @@ function Load-ConfigSafe {
     }
 
     try {
-        $cfg = Get-Content -Path $ConfigPath -Raw | ConvertFrom-Json
+        $cfg = Get-Content -LiteralPath $ConfigPath -Raw | ConvertFrom-Json
         if ($cfg) {
             if (Ensure-ConfigSchema -Cfg $cfg -Defaults $DefaultConfig) {
                 Write-ConfigFile -Path $ConfigPath -Object $cfg
@@ -351,7 +379,7 @@ function Test-ConfigPaths {
             $issues.Add("EMPTY path for $($p.Role)")
             continue
         }
-        if (-not (Test-Path $p.Path)) {
+        if (-not (Test-Path -LiteralPath $p.Path)) {
             $issues.Add("MISSING path for $($p.Role): $($p.Path)")
         }
     }
@@ -407,17 +435,30 @@ function Stop-Role {
 # Stop all roles gracefully
 # -------------------------------
 function Stop-All-Gracefully {
-    param([int]$DelaySec = 5)
+    param(
+        [int]$DelaySec = 5,
+        [int]$WaitTimeoutSec = 60,
+        $Cfg
+    )
 
     Log "Graceful shutdown initiated."
 
     Stop-Role -Role "Worldserver"
+    if (-not (Wait-ForRoleDown -Role "Worldserver" -ExpectedPath ([string]$Cfg.Worldserver) -TimeoutSec $WaitTimeoutSec)) {
+        Log "Graceful shutdown wait timed out for Worldserver."
+    }
     Start-Sleep -Seconds $DelaySec
 
     Stop-Role -Role "Authserver"
+    if (-not (Wait-ForRoleDown -Role "Authserver" -ExpectedPath ([string]$Cfg.Authserver) -TimeoutSec $WaitTimeoutSec)) {
+        Log "Graceful shutdown wait timed out for Authserver."
+    }
     Start-Sleep -Seconds $DelaySec
 
     Stop-Role -Role "MySQL"
+    if (-not (Wait-ForRoleDown -Role "MySQL" -ExpectedPath ([string]$Cfg.MySQL) -TimeoutSec $WaitTimeoutSec)) {
+        Log "Graceful shutdown wait timed out for MySQL."
+    }
 
     Log "Graceful shutdown completed."
 }
@@ -432,18 +473,43 @@ function Wait-ForRole {
         [ValidateSet("MySQL","Authserver","Worldserver")]
         [string]$Role,
 
+        [string]$ExpectedPath,
+
         [int]$TimeoutSec = 120
     )
 
     $start = Get-Date
     while (((Get-Date) - $start).TotalSeconds -lt $TimeoutSec) {
-        if (Test-ProcessRoleRunning -Role $Role) {
+        if (Test-ProcessRoleRunning -Role $Role -ExpectedPath $ExpectedPath) {
             return $true
         }
         Start-Sleep -Seconds 2
     }
 
     Log "Timeout waiting for $Role to become ready."
+    return $false
+}
+
+function Wait-ForRoleDown {
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet("MySQL","Authserver","Worldserver")]
+        [string]$Role,
+
+        [string]$ExpectedPath,
+
+        [int]$TimeoutSec = 60
+    )
+
+    $start = Get-Date
+    while (((Get-Date) - $start).TotalSeconds -lt $TimeoutSec) {
+        if (-not (Test-ProcessRoleRunning -Role $Role -ExpectedPath $ExpectedPath)) {
+            return $true
+        }
+        Start-Sleep -Seconds 2
+    }
+
+    Log "Timeout waiting for $Role to stop."
     return $false
 }
 
@@ -466,7 +532,7 @@ function Ensure-Role {
         return
     }
 
-    if (Test-ProcessRoleRunning -Role $Role) { return }
+    if (Test-ProcessRoleRunning -Role $Role -ExpectedPath $Path) { return }
 
     # Restart cooldown
     $delta = ((Get-Date) - $LastRestart[$Role]).TotalSeconds
@@ -529,7 +595,7 @@ function Process-Commands {
     if (Try-ConsumeCommandFile -Path $CommandFiles.StartAuthserver) {
         Log "Command processed: command.start.auth"
 
-        if (Wait-ForRole -Role "MySQL") {
+        if (Wait-ForRole -Role "MySQL" -ExpectedPath ([string]$Cfg.MySQL)) {
             Start-Target -Role "Authserver" -Path $Cfg.Authserver
         } else {
             Log "Authserver start blocked: MySQL not ready."
@@ -539,7 +605,7 @@ function Process-Commands {
      if (Try-ConsumeCommandFile -Path $CommandFiles.StartWorld) {
         Log "Command processed: command.start.world"
 
-        if (Wait-ForRole -Role "Authserver") {
+        if (Wait-ForRole -Role "Authserver" -ExpectedPath ([string]$Cfg.Authserver)) {
             Start-Target -Role "Worldserver" -Path $Cfg.Worldserver
         } else {
             Log "Worldserver start blocked: Authserver not ready."
@@ -551,7 +617,7 @@ function Process-Commands {
 
      if (Try-ConsumeCommandFile -Path $StopAllCmd) {
         Log "Command processed: command.stop.all"
-        Stop-All-Gracefully -DelaySec $ShutdownDelaySec
+        Stop-All-Gracefully -DelaySec $ShutdownDelaySec -Cfg $Cfg
     }
 
 
@@ -578,10 +644,10 @@ function Process-Commands {
 while ($true) {
     try {
         # Stop signal (GUI writes this)
-         if (Try-ConsumeCommandFile -Path $StopSignalFile) {
+        if (Try-ConsumeCommandFile -Path $StopSignalFile) {
             Log "Stop signal detected ($StopSignalFile). Initiating graceful shutdown."
-            
-            Stop-All-Gracefully -DelaySec $ShutdownDelaySec
+
+            Stop-All-Gracefully -DelaySec $ShutdownDelaySec -Cfg $cfg
 
             Write-Heartbeat -State "Stopping" -Extra @{ reason = "StopSignal" }
             break
@@ -637,20 +703,20 @@ if ($issues.Count -gt 0) {
         # Ensure roles
         Ensure-Role -Role "MySQL" -Path ([string]$cfg.MySQL)
 
-if (Test-ProcessRoleRunning -Role "MySQL") {
+if (Test-ProcessRoleRunning -Role "MySQL" -ExpectedPath ([string]$cfg.MySQL)) {
     Ensure-Role -Role "Authserver" -Path ([string]$cfg.Authserver)
 }
 
-if (Test-ProcessRoleRunning -Role "Authserver") {
+if (Test-ProcessRoleRunning -Role "Authserver" -ExpectedPath ([string]$cfg.Authserver)) {
     Ensure-Role -Role "Worldserver" -Path ([string]$cfg.Worldserver)
 }
 
 
         # Heartbeat + lightweight telemetry for GUI
             $extra = @{
-                mysqlRunning = (Test-ProcessRoleRunning -Role "MySQL")
-                authRunning  = (Test-ProcessRoleRunning -Role "Authserver")
-                worldRunning = (Test-ProcessRoleRunning -Role "Worldserver")
+                mysqlRunning = (Test-ProcessRoleRunning -Role "MySQL" -ExpectedPath ([string]$cfg.MySQL))
+                authRunning  = (Test-ProcessRoleRunning -Role "Authserver" -ExpectedPath ([string]$cfg.Authserver))
+                worldRunning = (Test-ProcessRoleRunning -Role "Worldserver" -ExpectedPath ([string]$cfg.Worldserver))
                 mysqlHeld    = (Is-RoleHeld -Role "MySQL")
                 authHeld     = (Is-RoleHeld -Role "Authserver")
                 worldHeld    = (Is-RoleHeld -Role "Worldserver")

@@ -793,30 +793,40 @@ function Get-OnlinePlayerCount_Legion {
     $psi.EnvironmentVariables["MYSQL_PWD"] = $dbPassword
 
     $proc = New-Object System.Diagnostics.Process
-    $proc.StartInfo = $psi
-    if (-not $proc.Start()) {
-        throw "Failed to start mysql.exe"
-    }
-
-    $stdout = $proc.StandardOutput.ReadToEnd()
-    $stderr = $proc.StandardError.ReadToEnd()
-    $proc.WaitForExit()
-
-    if ($proc.ExitCode -ne 0) {
-        $err = $stderr.Trim()
-        if ([string]::IsNullOrWhiteSpace($err)) {
-            $err = "Exit code $($proc.ExitCode)"
+    try {
+        $proc.StartInfo = $psi
+        if (-not $proc.Start()) {
+            throw "Failed to start mysql.exe"
         }
-        throw "mysql.exe query failed: $err"
-    }
 
-    $line = ($stdout.Trim() -split "\r?\n" | Select-Object -First 1).Trim()
-    $count = 0
-    if (-not [int]::TryParse($line, [ref]$count)) {
-        throw "Unexpected mysql output: '$line'"
-    }
+        $timeoutSec = 15
+        if (-not $proc.WaitForExit($timeoutSec * 1000)) {
+            try { $proc.Kill() } catch { }
+            try { $proc.WaitForExit() | Out-Null } catch { }
+            throw "mysql.exe query timed out after ${timeoutSec}s."
+        }
 
-    return $count
+        $stdout = $proc.StandardOutput.ReadToEnd()
+        $stderr = $proc.StandardError.ReadToEnd()
+
+        if ($proc.ExitCode -ne 0) {
+            $err = $stderr.Trim()
+            if ([string]::IsNullOrWhiteSpace($err)) {
+                $err = "Exit code $($proc.ExitCode)"
+            }
+            throw "mysql.exe query failed: $err"
+        }
+
+        $line = ($stdout.Trim() -split "\r?\n" | Select-Object -First 1).Trim()
+        $count = 0
+        if (-not [int]::TryParse($line, [ref]$count)) {
+            throw "Unexpected mysql output: '$line'"
+        }
+
+        return $count
+    } finally {
+        if ($proc) { $proc.Dispose() }
+    }
 }
 
 function Get-OnlinePlayerCountCached_Legion {
@@ -1224,29 +1234,33 @@ function Download-FileWithProgress {
     if (Test-Path $OutFile) { Remove-Item $OutFile -Force -ErrorAction SilentlyContinue }
 
     $wc = New-Object System.Net.WebClient
-    $wc.Headers.Add("User-Agent", "WoWWatchdog")
+    try {
+        $wc.Headers.Add("User-Agent", "WoWWatchdog")
 
-    $script:dlCompleted = $false
-    $script:dlError     = $null
+        $script:dlCompleted = $false
+        $script:dlError     = $null
 
-    $wc.add_DownloadProgressChanged({
-        param($s, $e)
-        Set-UpdateFlowUi -Text ("Downloading update. {0}%" -f $e.ProgressPercentage) -Percent $e.ProgressPercentage -Show $true -Indeterminate $false
-    })
+        $wc.add_DownloadProgressChanged({
+            param($s, $e)
+            Set-UpdateFlowUi -Text ("Downloading update. {0}%" -f $e.ProgressPercentage) -Percent $e.ProgressPercentage -Show $true -Indeterminate $false
+        })
 
-    $wc.add_DownloadFileCompleted({
-        param($s, $e)
-        if ($e.Error) { $script:dlError = $e.Error }
-        $script:dlCompleted = $true
-    })
+        $wc.add_DownloadFileCompleted({
+            param($s, $e)
+            if ($e.Error) { $script:dlError = $e.Error }
+            $script:dlCompleted = $true
+        })
 
-    Set-UpdateFlowUi -Text "Starting download." -Percent 0 -Show $true -Indeterminate $true
-    $wc.DownloadFileAsync([Uri]$Url, $OutFile)
+        Set-UpdateFlowUi -Text "Starting download." -Percent 0 -Show $true -Indeterminate $true
+        $wc.DownloadFileAsync([Uri]$Url, $OutFile)
 
-    while (-not $script:dlCompleted) { Start-Sleep -Milliseconds 120 }
+        while (-not $script:dlCompleted) { Start-Sleep -Milliseconds 120 }
 
-    if ($script:dlError) { throw "Download failed: $($script:dlError.Message)" }
-    if (-not (Test-Path $OutFile)) { throw "Download did not create file: $OutFile" }
+        if ($script:dlError) { throw "Download failed: $($script:dlError.Message)" }
+        if (-not (Test-Path $OutFile)) { throw "Download did not create file: $OutFile" }
+    } finally {
+        if ($wc) { $wc.Dispose() }
+    }
 
     return $true
 }
