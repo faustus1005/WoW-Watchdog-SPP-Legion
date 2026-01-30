@@ -168,7 +168,7 @@
                        FontWeight="Bold"
                        FontSize="16"
                        VerticalAlignment="Center"/>
-            <TextBlock Text="  •  GUI + Watchdog Monitor"
+            <TextBlock Text="  -  GUI + Watchdog Monitor"
                        Foreground="#FF86B5E5"
                        FontSize="12"
                        VerticalAlignment="Center"
@@ -177,7 +177,7 @@
 
           <Button x:Name="BtnMinimize"
                   Grid.Column="1"
-                  Content="—"
+                  Content="-"
                   Width="32" Height="28"
                   Margin="0,0,6,0"
                   Background="#FF1B2A42"
@@ -402,7 +402,7 @@
             <WrapPanel Grid.Row="3">
               <TextBlock Text="Online Players:" Foreground="#FF86B5E5" Margin="0,0,6,0"/>
               <TextBlock x:Name="TxtOnlinePlayers"
-                         Text="—"
+                         Text="-"
                          FontSize="16"
                          FontWeight="Bold"
                          Foreground="LimeGreen"/>
@@ -430,25 +430,25 @@
 
             <!-- MySQL -->
             <TextBlock Grid.Row="1" Grid.Column="0" Text="MySQL:" Foreground="White" Margin="0,0,8,4"/>
-            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="TxtUtilMySQLCpu" Text="CPU: —" Foreground="White" Margin="0,0,8,4"/>
-            <TextBlock Grid.Row="1" Grid.Column="2" x:Name="TxtUtilMySQLMem" Text="RAM: —" Foreground="White" Margin="0,0,0,4"/>
+            <TextBlock Grid.Row="1" Grid.Column="1" x:Name="TxtUtilMySQLCpu" Text="CPU: -" Foreground="White" Margin="0,0,8,4"/>
+            <TextBlock Grid.Row="1" Grid.Column="2" x:Name="TxtUtilMySQLMem" Text="RAM: -" Foreground="White" Margin="0,0,0,4"/>
 
             <!-- Authserver -->
             <TextBlock Grid.Row="2" Grid.Column="0" Text="Auth:" Foreground="White" Margin="0,0,8,4"/>
-            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="TxtUtilAuthCpu" Text="CPU: —" Foreground="White" Margin="0,0,8,4"/>
-            <TextBlock Grid.Row="2" Grid.Column="2" x:Name="TxtUtilAuthMem" Text="RAM: —" Foreground="White" Margin="0,0,0,4"/>
+            <TextBlock Grid.Row="2" Grid.Column="1" x:Name="TxtUtilAuthCpu" Text="CPU: -" Foreground="White" Margin="0,0,8,4"/>
+            <TextBlock Grid.Row="2" Grid.Column="2" x:Name="TxtUtilAuthMem" Text="RAM: -" Foreground="White" Margin="0,0,0,4"/>
 
             <!-- Worldserver -->
             <TextBlock Grid.Row="3" Grid.Column="0" Text="World:" Foreground="White"/>
-            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="TxtUtilWorldCpu" Text="CPU: —" Foreground="White" Margin="0,0,8,0"/>
-            <TextBlock Grid.Row="3" Grid.Column="2" x:Name="TxtUtilWorldMem" Text="RAM: —" Foreground="White"/>
+            <TextBlock Grid.Row="3" Grid.Column="1" x:Name="TxtUtilWorldCpu" Text="CPU: -" Foreground="White" Margin="0,0,8,0"/>
+            <TextBlock Grid.Row="3" Grid.Column="2" x:Name="TxtUtilWorldMem" Text="RAM: -" Foreground="White"/>
             </Grid>
 
             <!-- World Uptime -->
             <WrapPanel Grid.Row="5" Margin="0,10,0,0">
             <TextBlock Text="World Uptime:" Foreground="#FF86B5E5" Margin="0,0,6,0"/>
             <TextBlock x:Name="TxtWorldUptime"
-                        Text="—"
+                        Text="-"
                         FontWeight="SemiBold"
                         Foreground="White"/>
             </WrapPanel>
@@ -1460,7 +1460,7 @@
 
         <TextBlock x:Name="TxtTelnetTarget"
                    Grid.Column="3"
-                   Text="—"
+                   Text="-"
                    Foreground="White"
                    VerticalAlignment="Center"/>
 
@@ -1607,7 +1607,7 @@
 
       <Button x:Name="BtnBrowseWorldLog"
               Grid.Column="2"
-              Content="Browse…"
+              Content="Browse..."
               Width="90"
               MinHeight="28"
               Margin="0,0,10,0"
@@ -1785,7 +1785,7 @@
                          Margin="0,0,6,0"/>
 
               <TextBlock x:Name="TxtCurrentVersion"
-                         Text="—"
+                         Text="-"
                          FontWeight="SemiBold"
                          Foreground="White"/>
 
@@ -1794,7 +1794,7 @@
                          Margin="16,0,6,0"/>
 
               <TextBlock x:Name="TxtLatestVersion"
-                         Text="—"
+                         Text="-"
                          FontWeight="SemiBold"
                          Foreground="White"/>
             </WrapPanel>
