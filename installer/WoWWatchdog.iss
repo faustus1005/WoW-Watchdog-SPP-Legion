@@ -4,7 +4,7 @@
  
 [Setup]
 AppName=WoW Watchdog
-AppVersion=1.2.3
+AppVersion=1.2.5
 AppPublisher=WoW Watchdog Project
 DefaultDirName={commonpf32}\WoWWatchdog
 DefaultGroupName=WoW Watchdog
@@ -34,6 +34,7 @@ Source: "watchdog.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Assets
 Source: "WoWWatcher.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "WoWWatcherGUI.xaml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "nssm.exe";       DestDir: "{app}"; Flags: ignoreversion
 
 ; Optional default config
