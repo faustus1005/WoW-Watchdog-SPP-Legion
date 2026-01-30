@@ -209,9 +209,9 @@
   <Grid>
     <Grid.RowDefinitions>
     <!-- Give more vertical space to Live Log when the window is tall -->
-    <RowDefinition Height="2*" MinHeight="320"/>
+    <RowDefinition Height="Auto"/>
     <RowDefinition Height="6"/>
-    <RowDefinition Height="3*" MinHeight="240"/>
+    <RowDefinition Height="*" MinHeight="200"/>
     </Grid.RowDefinitions>
 
     <ScrollViewer Grid.Row="0" VerticalScrollBarVisibility="Auto"
