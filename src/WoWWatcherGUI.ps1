@@ -197,7 +197,7 @@ function Write-AtomicFile {
     }
 }
 
-$AppVersion = [version]"1.2.4"
+$AppVersion = [version]"1.2.5"
 $RepoOwner  = "FAUSTUS1005"
 $RepoName   = "WoW-Watchdog"
 
@@ -1319,9 +1319,10 @@ function Read-UncPathFromUser {
 }
 
 # -------------------------------------------------
-# XAML – Dark/Blue Theme
+# Load XAML
 # -------------------------------------------------
-$xamlPath = Join-Path $PSScriptRoot 'WoWWatcherGUI.xaml'
+$xamlRoot = Get-WwAppRoot -Override $AppRootOverride
+$xamlPath = Join-Path $xamlRoot 'WoWWatcherGUI.xaml'
 if (-not (Test-Path -LiteralPath $xamlPath)) {
     [System.Windows.MessageBox]::Show(
         "Missing GUI XAML file:`n`n$xamlPath",
@@ -1333,7 +1334,6 @@ if (-not (Test-Path -LiteralPath $xamlPath)) {
 }
 
 $xaml = Get-Content -LiteralPath $xamlPath -Raw
-
 
 [xml]$xamlXml = $xaml
 $xmlReader     = New-Object System.Xml.XmlNodeReader $xamlXml
