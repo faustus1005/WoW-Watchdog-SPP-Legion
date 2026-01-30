@@ -95,12 +95,61 @@ function Rotate-LogIfNeeded {
     } catch { }
 }
 
+function Invoke-WithLogLock {
+    param([Parameter(Mandatory)][scriptblock]$Action)
+
+    $mutex = $null
+    $hasLock = $false
+    try {
+        $mutex = New-Object System.Threading.Mutex($false, "Global\\WoWWatchdog_Log")
+        $hasLock = $mutex.WaitOne(2000)
+    } catch {
+        $hasLock = $false
+    }
+
+    try {
+        & $Action
+    } finally {
+        if ($hasLock -and $mutex) {
+            try { $mutex.ReleaseMutex() } catch { }
+        }
+        if ($mutex) { $mutex.Dispose() }
+    }
+}
+
+function Write-AtomicFile {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$Content,
+        [System.Text.Encoding]$Encoding = [System.Text.Encoding]::UTF8
+    )
+
+    $dir = Split-Path -Parent $Path
+    if ($dir -and -not (Test-Path -LiteralPath $dir)) {
+        New-Item -Path $dir -ItemType Directory -Force | Out-Null
+    }
+
+    $tmpName = (".{0}.tmp.{1}" -f ([System.IO.Path]::GetFileName($Path)), ([guid]::NewGuid().ToString("N")))
+    $tmpPath = Join-Path $dir $tmpName
+
+    try {
+        [System.IO.File]::WriteAllText($tmpPath, $Content, $Encoding)
+        Move-Item -LiteralPath $tmpPath -Destination $Path -Force
+    } finally {
+        if (Test-Path -LiteralPath $tmpPath) {
+            Remove-Item -LiteralPath $tmpPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 function Log {
     param([string]$Message)
     try {
-        Rotate-LogIfNeeded -Path $LogFile -MaxBytes $LogMaxBytes -Keep $LogRetainCount
-        $ts = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
-        Add-Content -Path $LogFile -Value "[$ts] $Message" -Encoding UTF8
+        Invoke-WithLogLock -Action {
+            Rotate-LogIfNeeded -Path $LogFile -MaxBytes $LogMaxBytes -Keep $LogRetainCount
+            $ts = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
+            Add-Content -Path $LogFile -Value "[$ts] $Message" -Encoding UTF8
+        }
     } catch { }
 }
 
@@ -116,7 +165,7 @@ function Write-Heartbeat {
     try {
         $now = Get-Date
         # Heartbeat file: ISO timestamp only (simple + robust)
-        Set-Content -Path $HeartbeatFile -Value ($now.ToString("o")) -Encoding UTF8 -Force
+        Write-AtomicFile -Path $HeartbeatFile -Content ($now.ToString("o"))
 
         # Optional richer status JSON
         $obj = [ordered]@{
@@ -131,8 +180,30 @@ function Write-Heartbeat {
             foreach ($k in $Extra.Keys) { $obj[$k] = $Extra[$k] }
         }
 
-        ($obj | ConvertTo-Json -Depth 6) | Set-Content -Path $StatusFile -Encoding UTF8 -Force
+         $json = $obj | ConvertTo-Json -Depth 6
+         Write-AtomicFile -Path $StatusFile -Content $json
     } catch { }
+}
+
+function Try-ConsumeCommandFile {
+    param([Parameter(Mandatory)][string]$Path)
+
+    if (-not (Test-Path -LiteralPath $Path)) { return $false }
+
+    $dir = Split-Path -Parent $Path
+    $claimed = Join-Path $dir ("{0}.processing.{1}" -f ([System.IO.Path]::GetFileName($Path)), ([guid]::NewGuid().ToString("N")))
+
+    try {
+        Move-Item -LiteralPath $Path -Destination $claimed -Force -ErrorAction Stop
+    } catch {
+        return $false
+    }
+
+    try {
+        Remove-Item -LiteralPath $claimed -Force -ErrorAction SilentlyContinue
+    } catch { }
+
+    return $true
 }
 
 # -------------------------------
@@ -450,13 +521,13 @@ function Process-Commands {
     param($Cfg)
 
     # --- START commands (ordered) ---
-    if (Test-Path $CommandFiles.StartMySQL) {
-        Remove-Item $CommandFiles.StartMySQL -Force
+      if (Try-ConsumeCommandFile -Path $CommandFiles.StartMySQL) {
+        Log "Command processed: command.start.mysql"
         Start-Target -Role "MySQL" -Path $Cfg.MySQL
     }
 
-    if (Test-Path $CommandFiles.StartAuthserver) {
-        Remove-Item $CommandFiles.StartAuthserver -Force
+    if (Try-ConsumeCommandFile -Path $CommandFiles.StartAuthserver) {
+        Log "Command processed: command.start.auth"
 
         if (Wait-ForRole -Role "MySQL") {
             Start-Target -Role "Authserver" -Path $Cfg.Authserver
@@ -465,8 +536,8 @@ function Process-Commands {
         }
     }
 
-    if (Test-Path $CommandFiles.StartWorld) {
-        Remove-Item $CommandFiles.StartWorld -Force
+     if (Try-ConsumeCommandFile -Path $CommandFiles.StartWorld) {
+        Log "Command processed: command.start.world"
 
         if (Wait-ForRole -Role "Authserver") {
             Start-Target -Role "Worldserver" -Path $Cfg.Worldserver
@@ -478,24 +549,24 @@ function Process-Commands {
     # --- STOP commands ---
     $StopAllCmd = Join-Path $CommandDir "command.stop.all"
 
-    if (Test-Path $StopAllCmd) {
-        Remove-Item $StopAllCmd -Force
+     if (Try-ConsumeCommandFile -Path $StopAllCmd) {
+        Log "Command processed: command.stop.all"
         Stop-All-Gracefully -DelaySec $ShutdownDelaySec
     }
 
 
-    if (Test-Path $CommandFiles.StopWorld) {
-        Remove-Item $CommandFiles.StopWorld -Force
+      if (Try-ConsumeCommandFile -Path $CommandFiles.StopWorld) {
+        Log "Command processed: command.stop.world"
         Stop-Role -Role "Worldserver"
     }
 
-    if (Test-Path $CommandFiles.StopAuthserver) {
-        Remove-Item $CommandFiles.StopAuthserver -Force
+     if (Try-ConsumeCommandFile -Path $CommandFiles.StopAuthserver) {
+        Log "Command processed: command.stop.auth"
         Stop-Role -Role "Authserver"
     }
 
-    if (Test-Path $CommandFiles.StopMySQL) {
-        Remove-Item $CommandFiles.StopMySQL -Force
+    if (Try-ConsumeCommandFile -Path $CommandFiles.StopMySQL) {
+        Log "Command processed: command.stop.mysql"
         Stop-Role -Role "MySQL"
     }
 }
@@ -507,10 +578,9 @@ function Process-Commands {
 while ($true) {
     try {
         # Stop signal (GUI writes this)
-        if (Test-Path $StopSignalFile) {
+         if (Try-ConsumeCommandFile -Path $StopSignalFile) {
             Log "Stop signal detected ($StopSignalFile). Initiating graceful shutdown."
-            Remove-Item $StopSignalFile -Force -ErrorAction SilentlyContinue
-
+            
             Stop-All-Gracefully -DelaySec $ShutdownDelaySec
 
             Write-Heartbeat -State "Stopping" -Extra @{ reason = "StopSignal" }

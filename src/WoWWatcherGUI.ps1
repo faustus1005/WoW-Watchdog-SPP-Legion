@@ -172,6 +172,31 @@ function Write-JsonFile {
     $Object | ConvertTo-Json -Depth 15 | Set-Content -LiteralPath $Path -Encoding UTF8
 }
 
+function Write-AtomicFile {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [Parameter(Mandatory)][string]$Content,
+        [System.Text.Encoding]$Encoding = [System.Text.Encoding]::UTF8
+    )
+
+    $dir = Split-Path -Parent $Path
+    if ($dir -and -not (Test-Path -LiteralPath $dir)) {
+        New-Item -Path $dir -ItemType Directory -Force | Out-Null
+    }
+
+    $tmpName = (".{0}.tmp.{1}" -f ([System.IO.Path]::GetFileName($Path)), ([guid]::NewGuid().ToString("N")))
+    $tmpPath = Join-Path $dir $tmpName
+
+    try {
+        [System.IO.File]::WriteAllText($tmpPath, $Content, $Encoding)
+        Move-Item -LiteralPath $tmpPath -Destination $Path -Force
+    } finally {
+        if (Test-Path -LiteralPath $tmpPath) {
+            Remove-Item -LiteralPath $tmpPath -Force -ErrorAction SilentlyContinue
+        }
+    }
+}
+
 $AppVersion = [version]"1.2.4"
 $RepoOwner  = "FAUSTUS1005"
 $RepoName   = "WoW-Watchdog"
@@ -677,6 +702,44 @@ function Remove-WorldTelnetPassword {
     }
 }
 
+function Migrate-LegacySecretsFromConfig {
+    param([Parameter(Mandatory)]$Cfg)
+
+    $changed = $false
+    if ($Cfg -and $Cfg.PSObject.Properties["NTFY"]) {
+        $ntfy = $Cfg.NTFY
+
+        if ($ntfy -and $ntfy.PSObject.Properties["Password"]) {
+            $plain = [string]$ntfy.Password
+            if (-not [string]::IsNullOrWhiteSpace($plain)) {
+                try {
+                    Set-NtfySecret -Kind "BasicPassword" -Plain $plain
+                    $ntfy.Password = ""
+                    $changed = $true
+                } catch { }
+            }
+        }
+
+        if ($ntfy -and $ntfy.PSObject.Properties["Token"]) {
+            $plain = [string]$ntfy.Token
+            if (-not [string]::IsNullOrWhiteSpace($plain)) {
+                try {
+                    Set-NtfySecret -Kind "Token" -Plain $plain
+                    $ntfy.Token = ""
+                    $changed = $true
+                } catch { }
+            }
+        }
+    }
+
+    return $changed
+}
+
+try {
+    if (Migrate-LegacySecretsFromConfig -Cfg $Config) {
+        Write-JsonFile -Path $ConfigPath -Object $Config
+    }
+} catch { }
 
 function Get-OnlinePlayerCount_Legion {
 
@@ -4786,9 +4849,32 @@ $BtnRunFullBackup.Add_Click({
                     New-Item -ItemType Directory -Path $p -Force | Out-Null
                 }
             }
+      function Write-AtomicFile {
+                param(
+                    [Parameter(Mandatory)][string]$Path,
+                    [Parameter(Mandatory)][string]$Content
+                )
 
+                $dir = Split-Path -Parent $Path
+                if ($dir -and -not (Test-Path -LiteralPath $dir)) {
+                    New-Item -Path $dir -ItemType Directory -Force | Out-Null
+                }
+
+                $tmpName = (".{0}.tmp.{1}" -f ([System.IO.Path]::GetFileName($Path)), ([guid]::NewGuid().ToString("N")))
+                $tmpPath = Join-Path $dir $tmpName
+
+                try {
+                    [System.IO.File]::WriteAllText($tmpPath, $Content, [System.Text.Encoding]::UTF8)
+                    Move-Item -LiteralPath $tmpPath -Destination $Path -Force
+                } finally {
+                    if (Test-Path -LiteralPath $tmpPath) {
+                        Remove-Item -LiteralPath $tmpPath -Force -ErrorAction SilentlyContinue
+                    }
+                }
+            }
+            
             function Send-Command([string]$name) {
-                New-Item -Path (Join-Path $state.DataDir $name) -ItemType File -Force | Out-Null
+                Write-AtomicFile -Path (Join-Path $state.DataDir $name) -Content ""
                 Add-BackupLog "Command sent: $name"
             }
 
@@ -4907,7 +4993,7 @@ $BtnRunFullBackup.Add_Click({
             function Set-Hold([string]$role, [bool]$held) {
                 $p = Join-Path $holdDir "$role.hold"
                 if ($held) {
-                    New-Item -Path $p -ItemType File -Force | Out-Null
+                    Write-AtomicFile -Path $p -Content ""
                     Add-BackupLog "$role HOLD set."
                 } else {
                     if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue }
@@ -5624,8 +5710,32 @@ function Start-SppV2RepackUpdate {
             Add-Step ("Verbose log: " + $verboseLogPath)
             function Ensure-Dir([string]$p) { if (-not (Test-Path -LiteralPath $p)) { New-Item -ItemType Directory -Path $p -Force | Out-Null } }
 
+                function Write-AtomicFile {
+                param(
+                    [Parameter(Mandatory)][string]$Path,
+                    [Parameter(Mandatory)][string]$Content
+                )
+
+                $dir = Split-Path -Parent $Path
+                if ($dir -and -not (Test-Path -LiteralPath $dir)) {
+                    New-Item -Path $dir -ItemType Directory -Force | Out-Null
+                }
+
+                $tmpName = (".{0}.tmp.{1}" -f ([System.IO.Path]::GetFileName($Path)), ([guid]::NewGuid().ToString("N")))
+                $tmpPath = Join-Path $dir $tmpName
+
+                try {
+                    [System.IO.File]::WriteAllText($tmpPath, $Content, [System.Text.Encoding]::UTF8)
+                    Move-Item -LiteralPath $tmpPath -Destination $Path -Force
+                } finally {
+                    if (Test-Path -LiteralPath $tmpPath) {
+                        Remove-Item -LiteralPath $tmpPath -Force -ErrorAction SilentlyContinue
+                    }
+                }
+            }
+
             function Send-Command([string]$name) {
-                New-Item -Path (Join-Path $state.DataDir $name) -ItemType File -Force | Out-Null
+                Write-AtomicFile -Path (Join-Path $state.DataDir $name) -Content ""
                 Add-Step "Command sent: $name"
             }
 
@@ -5651,7 +5761,7 @@ function Start-SppV2RepackUpdate {
             function Set-Hold([string]$role, [bool]$held) {
                 $p = Join-Path $holdDir "$role.hold"
                 if ($held) {
-                    New-Item -Path $p -ItemType File -Force | Out-Null
+                    Write-AtomicFile -Path $p -Content ""
                     Add-Step "$role HOLD set."
                 } else {
                     if (Test-Path -LiteralPath $p) { Remove-Item -LiteralPath $p -Force -ErrorAction SilentlyContinue }
@@ -6453,7 +6563,7 @@ function Stop-WatchdogPreferred {
 
     try {
         # Ask watchdog loop to gracefully stop roles
-        New-Item -Path $StopSignalFile -ItemType File -Force | Out-Null
+        Write-AtomicFile -Path $StopSignalFile -Content ""
         Add-GuiLog "Stop signal written. Requesting service stop."
 
         if ($svc.Status -ne 'Stopped') {
@@ -6725,13 +6835,37 @@ function Rotate-GuiLogIfNeeded {
     } catch { }
 }
 
+function Invoke-WithLogLock {
+    param([Parameter(Mandatory)][scriptblock]$Action)
+
+    $mutex = $null
+    $hasLock = $false
+    try {
+        $mutex = New-Object System.Threading.Mutex($false, "Global\\WoWWatchdog_Log")
+        $hasLock = $mutex.WaitOne(2000)
+    } catch {
+        $hasLock = $false
+    }
+
+    try {
+        & $Action
+    } finally {
+        if ($hasLock -and $mutex) {
+            try { $mutex.ReleaseMutex() } catch { }
+        }
+        if ($mutex) { $mutex.Dispose() }
+    }
+}
+
 function Add-GuiLog {
     param([string]$Message)
 
     try {
+        Invoke-WithLogLock -Action {
         $tsFile = (Get-Date).ToString("yyyy-MM-dd HH:mm:ss")
         Rotate-GuiLogIfNeeded -Path $LogPath -MaxBytes $LogMaxBytes -Keep $LogRetainCount
         Add-Content -Path $LogPath -Value "[$tsFile] $Message" -Encoding UTF8
+        }
     } catch { }
 
     if (-not $Window) { return }
@@ -6777,7 +6911,7 @@ function Send-WatchdogCommand {
     param([string]$Name)
 
     $cmd = Join-Path $DataDir $Name
-    New-Item -Path $cmd -ItemType File -Force | Out-Null
+    Write-AtomicFile -Path $cmd -Content ""
     Add-GuiLog "Command sent: $Name"
 }
 
@@ -6811,7 +6945,7 @@ function Set-RoleHold {
     $p = Get-HoldFilePath -Role $Role
 
     if ($Held) {
-        New-Item -Path $p -ItemType File -Force | Out-Null
+        Write-AtomicFile -Path $p -Content ""
         Add-GuiLog "$Role placed on HOLD (watchdog will not auto-restart)."
     } else {
         if (Test-Path $p) { Remove-Item $p -Force -ErrorAction SilentlyContinue }
