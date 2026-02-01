@@ -4776,26 +4776,30 @@ function Get-ProcUtilSnapshot {
     $now = Get-Date
     $logical = [Environment]::ProcessorCount
 
-    # Memory snapshot
-    $wsMB = [math]::Round(($p.WorkingSet64 / 1MB), 1)
+    # Memory snapshot (some process properties can throw "Access is denied")
+    $wsMB = $null
     $privMB = $null
+    try { $wsMB = [math]::Round(($p.WorkingSet64 / 1MB), 1) } catch { }
     try { $privMB = [math]::Round(($p.PrivateMemorySize64 / 1MB), 1) } catch { }
 
     # CPU% via delta sampling
     $key = $Role
     $cpuPct = $null
 
+    $totalCpu = $null
+    try { $totalCpu = $p.TotalProcessorTime } catch { }
+
     $curr = [pscustomobject]@{
         Pid       = $p.Id
         Timestamp = $now
-        TotalCpu  = $p.TotalProcessorTime
+        TotalCpu  = $totalCpu
     }
 
     if ($global:ProcSampleCache.ContainsKey($key)) {
         $prev = $global:ProcSampleCache[$key]
 
         # If PID changed, reset sampling
-        if ($prev.Pid -eq $curr.Pid) {
+        if ($prev.Pid -eq $curr.Pid -and $null -ne $curr.TotalCpu -and $null -ne $prev.TotalCpu) {
             $dt = ($curr.Timestamp - $prev.Timestamp).TotalSeconds
             if ($dt -gt 0.2) {
                 $dCpu = ($curr.TotalCpu - $prev.TotalCpu).TotalSeconds
