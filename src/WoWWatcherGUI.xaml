@@ -1368,7 +1368,7 @@
       <GroupBox.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
           <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
-          <GradientStop Color="{DynamicResource Theme.InputBackgroundBrush}" Offset="1.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
         </LinearGradientBrush>
       </GroupBox.Background>
 
