@@ -299,6 +299,7 @@ $global:PlayerCountCacheTtlSeconds = 5
 $DefaultConfig = [ordered]@{
     ServerName   = ""
     Expansion    = "Unknown"
+    Theme        = "Default"
 
     MySQL        = ""     # e.g. C:\WoWSrv\Database\start_mysql.bat
     MySQLExe     = ""     # e.g. C:\WoWSrv\Database\bin\mysql.exe
@@ -380,6 +381,70 @@ Ensure-ConfigSchema -Cfg $Config -Defaults ([pscustomobject]$DefaultConfig)
 
 # Persist upgraded config immediately
 Write-JsonFile -Path $ConfigPath -Object $Config
+
+function Convert-HexToColor {
+    param([Parameter(Mandatory)][string]$Hex)
+    $hexValue = $Hex.Trim().TrimStart('#')
+    if ($hexValue.Length -ne 8) { throw "Invalid ARGB hex color: $Hex" }
+
+    $a = [Convert]::ToByte($hexValue.Substring(0, 2), 16)
+    $r = [Convert]::ToByte($hexValue.Substring(2, 2), 16)
+    $g = [Convert]::ToByte($hexValue.Substring(4, 2), 16)
+    $b = [Convert]::ToByte($hexValue.Substring(6, 2), 16)
+
+    return [System.Windows.Media.Color]::FromArgb($a, $r, $g, $b)
+}
+
+$ThemePalettes = [ordered]@{
+    Default = [ordered]@{
+        "Theme.WindowBackgroundBrush"    = "#FF0D111A"
+        "Theme.InputBackgroundBrush"     = "#FF0F141F"
+        "Theme.TitleBackgroundBrush"     = "#FF101829"
+        "Theme.PanelGradientTopColor"    = "#FF151B28"
+        "Theme.PanelGradientBottomColor" = "#FF111623"
+        "Theme.BorderStrongBrush"        = "#FF2B3E5E"
+        "Theme.BorderInputBrush"         = "#FF345A8A"
+        "Theme.ButtonPrimaryBrush"       = "#FF3478BF"
+        "Theme.ButtonPrimaryBorderBrush" = "#FF2B5E9A"
+        "Theme.ButtonStartBrush"         = "#FF2D7A3A"
+        "Theme.ButtonStartBorderBrush"   = "#FF1E5A2B"
+        "Theme.ButtonStopBrush"          = "#FF7A3A3A"
+        "Theme.ButtonStopBorderBrush"    = "#FF5A2626"
+        "Theme.ButtonSecondaryBrush"     = "#FF1B2A42"
+        "Theme.TitleCloseBackgroundBrush"= "#FF3A1B1B"
+        "Theme.TitleCloseBorderBrush"    = "#FF5E2B2B"
+        "Theme.TextHeadingBrush"         = "#FFBDDCFF"
+        "Theme.TextSubtleBrush"          = "#FF86B5E5"
+        "Theme.TextDisabledBrush"        = "#FF777777"
+        "Theme.TextWarningBrush"         = "#FFFFB347"
+        "Theme.TextInfoBrush"            = "#FFE6F2FF"
+        "Theme.TextHighlightBrush"       = "#FFFFD24D"
+    }
+    Legion = [ordered]@{
+        "Theme.WindowBackgroundBrush"    = "#FF0B0F0B"
+        "Theme.InputBackgroundBrush"     = "#FF11160F"
+        "Theme.TitleBackgroundBrush"     = "#FF111812"
+        "Theme.PanelGradientTopColor"    = "#FF141A12"
+        "Theme.PanelGradientBottomColor" = "#FF10140E"
+        "Theme.BorderStrongBrush"        = "#FF2C3827"
+        "Theme.BorderInputBrush"         = "#FF3A4B2E"
+        "Theme.ButtonPrimaryBrush"       = "#FFC9A34A"
+        "Theme.ButtonPrimaryBorderBrush" = "#FF9B7C2F"
+        "Theme.ButtonStartBrush"         = "#FF2F7D32"
+        "Theme.ButtonStartBorderBrush"   = "#FF1F5A2E"
+        "Theme.ButtonStopBrush"          = "#FF7B2B2B"
+        "Theme.ButtonStopBorderBrush"    = "#FF5A1E1E"
+        "Theme.ButtonSecondaryBrush"     = "#FF1C251B"
+        "Theme.TitleCloseBackgroundBrush"= "#FF4A1C1C"
+        "Theme.TitleCloseBorderBrush"    = "#FF6D2B2B"
+        "Theme.TextHeadingBrush"         = "#FFD9C784"
+        "Theme.TextSubtleBrush"          = "#FFA8C46C"
+        "Theme.TextDisabledBrush"        = "#FF777777"
+        "Theme.TextWarningBrush"         = "#FFFFB347"
+        "Theme.TextInfoBrush"            = "#FFE6F2FF"
+        "Theme.TextHighlightBrush"       = "#FFFFD24D"
+    }
+}
 
 function Ensure-UrlZipToolInstalled {
     param(
@@ -1437,6 +1502,7 @@ $BtnBattleShopEditor = Assert-Control $Window "BtnBattleShopEditor"
 # NTFY controls
 $CmbExpansion          = $Window.FindName("CmbExpansion")
 $TxtExpansionCustom    = $Window.FindName("TxtExpansionCustom")
+$CmbTheme              = $Window.FindName("CmbTheme")
 
 $TxtNtfyServer         = $Window.FindName("TxtNtfyServer")
 $TxtNtfyTopic          = $Window.FindName("TxtNtfyTopic")
@@ -4566,6 +4632,28 @@ function Select-ComboItemByContent {
     return $false
 }
 
+function Set-ThemeResources {
+    param([Parameter(Mandatory)][string]$ThemeName)
+
+    if (-not $ThemePalettes.Contains($ThemeName)) {
+        $ThemeName = "Default"
+    }
+
+    $palette = $ThemePalettes[$ThemeName]
+    if (-not $palette) { return }
+
+    foreach ($entry in $palette.GetEnumerator()) {
+        $key = $entry.Key
+        $hex = $entry.Value
+        if ($key -like "*Color") {
+            $Window.Resources[$key] = Convert-HexToColor -Hex $hex
+        } else {
+            $brush = New-Object System.Windows.Media.SolidColorBrush (Convert-HexToColor -Hex $hex)
+            $Window.Resources[$key] = $brush
+        }
+    }
+}
+
 function Set-ExpansionUiFromConfig {
     $exp = [string]$Config.Expansion
     if ([string]::IsNullOrWhiteSpace($exp)) { $exp = "Unknown" }
@@ -4583,6 +4671,29 @@ function Set-ExpansionUiFromConfig {
         } else {
             $TxtExpansionCustom.Visibility = "Collapsed"
         }
+    }
+}
+
+function Initialize-ThemeSelection {
+    if (-not $CmbTheme) { return }
+
+    $CmbTheme.Items.Clear()
+    foreach ($themeName in $ThemePalettes.Keys) {
+        $item = New-Object System.Windows.Controls.ComboBoxItem
+        $item.Content = $themeName
+        [void]$CmbTheme.Items.Add($item)
+    }
+
+    $currentTheme = [string]$Config.Theme
+    if ([string]::IsNullOrWhiteSpace($currentTheme)) { $currentTheme = "Default" }
+    $matched = Select-ComboItemByContent -Combo $CmbTheme -Content $currentTheme
+    if (-not $matched) {
+        [void](Select-ComboItemByContent -Combo $CmbTheme -Content "Default")
+    }
+
+    $selectedItem = $CmbTheme.SelectedItem
+    if ($selectedItem -and $selectedItem.Content) {
+        Set-ThemeResources -ThemeName ([string]$selectedItem.Content)
     }
 }
 
@@ -4681,6 +4792,21 @@ function Stop-WatchdogPreferred {
 
 # Expansion + NTFY values from config
 Set-ExpansionUiFromConfig
+
+Initialize-ThemeSelection
+
+if ($CmbTheme) {
+    $CmbTheme.Add_SelectionChanged({
+        try {
+            $sel = $CmbTheme.SelectedItem
+            if ($sel -and $sel.Content) {
+                $themeName = [string]$sel.Content
+                Set-ThemeResources -ThemeName $themeName
+                $Config.Theme = $themeName
+            }
+        } catch { }
+    })
+}
 
 $TxtNtfyServer.Text   = [string]$Config.NTFY.Server
 $TxtNtfyTopic.Text    = [string]$Config.NTFY.Topic
@@ -5564,6 +5690,13 @@ $BtnSaveConfig.Add_Click({
         if ([string]::IsNullOrWhiteSpace($expVal)) { $expVal = "Custom" }
     }
 
+    $themeVal = [string]$Config.Theme
+    try {
+        $themeSel = $CmbTheme.SelectedItem
+        if ($themeSel -and $themeSel.Content) { $themeVal = [string]$themeSel.Content }
+    } catch { }
+    if ([string]::IsNullOrWhiteSpace($themeVal)) { $themeVal = "Default" }
+
     # Resolve Auth Mode selection
 $authMode = "None"
 try {
@@ -5655,6 +5788,7 @@ if ([string]::IsNullOrWhiteSpace($dbNameChars)) { $dbNameChars = "legion_charact
 $cfg = [pscustomobject]@{
         ServerName  = $Config.ServerName
         Expansion   = $expVal
+        Theme       = $themeVal
 
         MySQL       = $TxtMySQL.Text
         MySQLExe    = $TxtMySQLExe.Text
