@@ -402,6 +402,20 @@ function Convert-HexToBrush {
     return $brush
 }
 
+function Convert-StringToBrush {
+    param([Parameter(Mandatory)][string]$Value)
+    $converter = New-Object System.Windows.Media.BrushConverter
+    $brush = $converter.ConvertFromString($Value)
+    if ($brush -is [System.Windows.Media.SolidColorBrush]) { $brush.Freeze() }
+    return $brush
+}
+
+function Convert-StringToColor {
+    param([Parameter(Mandatory)][string]$Value)
+    $converter = New-Object System.Windows.Media.ColorConverter
+    return $converter.ConvertFromString($Value)
+}
+
 $ThemePalettes = [ordered]@{
     Default = [ordered]@{
         "Theme.WindowBackgroundBrush"    = "#FF0D111A"
@@ -4652,12 +4666,18 @@ function Set-ThemeResources {
     foreach ($entry in $palette.GetEnumerator()) {
         $key = $entry.Key
         $hex = $entry.Value
-        if ($key -like "*Color") {
-            $Window.Resources[$key] = Convert-HexToColor -Hex $hex
-        } elseif ($key -like "*Brush") {
-            $Window.Resources[$key] = Convert-HexToBrush -Hex $hex
-        } else {
-            $Window.Resources[$key] = Convert-HexToBrush -Hex $hex
+        try {
+            if ($key -like "*Color") {
+                $Window.Resources[$key] = Convert-StringToColor -Value $hex
+            } else {
+                $Window.Resources[$key] = Convert-StringToBrush -Value $hex
+            }
+        } catch {
+            if ($key -like "*Color") {
+                $Window.Resources[$key] = [System.Windows.Media.Colors]::Transparent
+            } else {
+                $Window.Resources[$key] = [System.Windows.Media.Brushes]::Transparent
+            }
         }
     }
 }
