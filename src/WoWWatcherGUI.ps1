@@ -489,6 +489,30 @@ $ThemePalettes = [ordered]@{
         "Theme.TextInfoBrush"            = "#FFE6F2FF"
         "Theme.TextHighlightBrush"       = "#FF8CE8FF"
     }
+        Cataclysm = [ordered]@{
+        "Theme.WindowBackgroundBrush"    = "#FF120E0B"
+        "Theme.InputBackgroundBrush"     = "#FF1A1410"
+        "Theme.TitleBackgroundBrush"     = "#FF1C1410"
+        "Theme.PanelGradientTopColor"    = "#FF231A14"
+        "Theme.PanelGradientBottomColor" = "#FF18120E"
+        "Theme.BorderStrongBrush"        = "#FF4B2D1F"
+        "Theme.BorderInputBrush"         = "#FF6A3F28"
+        "Theme.ButtonPrimaryBrush"       = "#FFCB6A2E"
+        "Theme.ButtonPrimaryBorderBrush" = "#FF9D4C22"
+        "Theme.ButtonStartBrush"         = "#FF3A7A3B"
+        "Theme.ButtonStartBorderBrush"   = "#FF25562A"
+        "Theme.ButtonStopBrush"          = "#FF8E3A2D"
+        "Theme.ButtonStopBorderBrush"    = "#FF63251F"
+        "Theme.ButtonSecondaryBrush"     = "#FF231813"
+        "Theme.TitleCloseBackgroundBrush"= "#FF5A231B"
+        "Theme.TitleCloseBorderBrush"    = "#FF7A3125"
+        "Theme.TextHeadingBrush"         = "#FFFFD7A1"
+        "Theme.TextSubtleBrush"          = "#FFE7B47A"
+        "Theme.TextDisabledBrush"        = "#FF777777"
+        "Theme.TextWarningBrush"         = "#FFFFB347"
+        "Theme.TextInfoBrush"            = "#FFFFF1E1"
+        "Theme.TextHighlightBrush"       = "#FFFF8F3A"
+    }
 }
 
 function Ensure-UrlZipToolInstalled {
