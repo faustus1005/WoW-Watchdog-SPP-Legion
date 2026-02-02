@@ -5697,6 +5697,7 @@ $BtnUpdateNow.Add_Click({
         try {
             Set-UpdateButtonsEnabled -Enabled $false
             Set-UpdateFlowUi -Text "Preparing update." -Percent 0 -Show $true -Indeterminate $true
+            Add-GuiLog "Self-update started."
 
             # Reuse your repo settings
             $Owner = $RepoOwner
@@ -5786,17 +5787,22 @@ $BtnUpdateNow.Add_Click({
         }
         catch {
             $errMsg = $_.Exception.Message
-            $Window.Dispatcher.Invoke([action]{
-                Set-UpdateButtonsEnabled -Enabled $true
-                Set-UpdateFlowUi -Text ("Update failed: " + $errMsg) -Percent 0 -Show $true -Indeterminate $false
+            Add-GuiLog ("ERROR: Self-update failed: {0}" -f $errMsg)
+            try {
+                $Window.Dispatcher.Invoke([action]{
+                    Set-UpdateButtonsEnabled -Enabled $true
+                    Set-UpdateFlowUi -Text ("Update failed: " + $errMsg) -Percent 0 -Show $true -Indeterminate $false
 
-                [System.Windows.MessageBox]::Show(
-                    $errMsg,
-                    "Update Failed",
-                    [System.Windows.MessageBoxButton]::OK,
-                    [System.Windows.MessageBoxImage]::Error
-                ) | Out-Null
-            })
+                    [System.Windows.MessageBox]::Show(
+                        $errMsg,
+                        "Update Failed",
+                        [System.Windows.MessageBoxButton]::OK,
+                        [System.Windows.MessageBoxImage]::Error
+                    ) | Out-Null
+                })
+            } catch {
+                Add-GuiLog ("ERROR: Failed to show update error UI: {0}" -f $_.Exception.Message)
+            }
         }
     
     })
