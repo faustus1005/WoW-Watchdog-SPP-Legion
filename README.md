@@ -1,5 +1,4 @@
-# <p align="center">![WowWatchDog](https://github.com/user-attachments/assets/a48882ba-a573-4765-9ef3-d49404111a5b)/p>
-
+# <p align="center">![WowWatchDog](https://github.com/user-attachments/assets/a48882ba-a573-4765-9ef3-d49404111a5b)
 
 <p align="center"> <img src="https://img.shields.io/badge/PowerShell-5.1+-blue?logo=powershell&style=flat-square"/> <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-lightgrey?logo=windows&style=flat-square"/> <img src="https://img.shields.io/badge/Service-NSSM-success?style=flat-square"/> <img src="https://img.shields.io/badge/GUI-WPF-blueviolet?style=flat-square"/> <img src="https://img.shields.io/badge/Notifications-NTFY-orange?style=flat-square"/> <img src="https://img.shields.io/badge/Status-Stable-success?style=flat-square"/> </p>
 
