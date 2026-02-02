@@ -216,6 +216,69 @@ $ScriptDir   = $InstallDir
 $script:ScriptDir  = $ScriptDir
 $script:IsPortable = $script:WwIsPortable
 
+function Show-LoadingSplash {
+    param(
+        [Parameter(Mandatory)][string]$ImagePath,
+        [int]$DurationMs = 1500
+    )
+
+    if (-not (Test-Path -LiteralPath $ImagePath)) { return }
+
+    try {
+        if (-not [System.Windows.Application]::Current) {
+            $null = New-Object System.Windows.Application
+        }
+
+        $app = [System.Windows.Application]::Current
+        $previousShutdownMode = $app.ShutdownMode
+        $app.ShutdownMode = [System.Windows.ShutdownMode]::OnExplicitShutdown
+
+        $splashWindow = New-Object System.Windows.Window
+        $splashWindow.WindowStyle = 'None'
+        $splashWindow.ResizeMode = 'NoResize'
+        $splashWindow.AllowsTransparency = $true
+        $splashWindow.Background = [System.Windows.Media.Brushes]::Transparent
+        $splashWindow.ShowInTaskbar = $false
+        $splashWindow.Topmost = $true
+        $splashWindow.WindowStartupLocation = 'CenterScreen'
+        $splashWindow.SizeToContent = 'WidthAndHeight'
+
+        $bitmap = New-Object System.Windows.Media.Imaging.BitmapImage
+        $bitmap.BeginInit()
+        $bitmap.CacheOption = [System.Windows.Media.Imaging.BitmapCacheOption]::OnLoad
+        $bitmap.UriSource = [Uri]$ImagePath
+        $bitmap.EndInit()
+        $bitmap.Freeze()
+
+        $image = New-Object System.Windows.Controls.Image
+        $image.Source = $bitmap
+        $image.Stretch = 'Uniform'
+        $image.SnapsToDevicePixels = $true
+
+        $splashWindow.Content = $image
+        $splashWindow.Show()
+
+        $frame = New-Object System.Windows.Threading.DispatcherFrame
+        $timer = New-Object System.Windows.Threading.DispatcherTimer
+        $timer.Interval = [TimeSpan]::FromMilliseconds($DurationMs)
+        $timer.add_Tick({
+            $timer.Stop()
+            $splashWindow.Close()
+            $frame.Continue = $false
+        })
+        $timer.Start()
+        [System.Windows.Threading.Dispatcher]::PushFrame($frame)
+
+        $app.ShutdownMode = $previousShutdownMode
+    } catch {
+        try {
+            if ([System.Windows.Application]::Current) {
+                [System.Windows.Application]::Current.ShutdownMode = [System.Windows.ShutdownMode]::OnLastWindowClose
+            }
+        } catch { }
+    }
+}
+
 # State/config directory: installed mode remains backward-compatible (ProgramData\WoWWatchdog)
 $DataDir = if ($DataDirOverride) {
     $DataDirOverride
@@ -1455,6 +1518,8 @@ function Read-UncPathFromUser {
 # -------------------------------------------------
 # Load XAML
 # -------------------------------------------------
+$LoadingImagePath = Join-Path $ScriptDir "WoWWatchdogLoading.jpg"
+Show-LoadingSplash -ImagePath $LoadingImagePath -DurationMs 1500
 $xamlRoot = Get-WwAppRoot -Override $AppRootOverride
 $xamlPath = Join-Path $xamlRoot 'WoWWatcherGUI.xaml'
 if (-not (Test-Path -LiteralPath $xamlPath)) {

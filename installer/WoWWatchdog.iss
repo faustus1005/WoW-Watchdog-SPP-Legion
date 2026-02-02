@@ -36,6 +36,7 @@ Source: "watchdog.ps1"; DestDir: "{app}"; Flags: ignoreversion
 Source: "WoWWatchdog.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "WoWWatcherGUI.xaml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "nssm.exe";       DestDir: "{app}"; Flags: ignoreversion
+Source: "WoWWatchdogLoading.jpg";       DestDir: "{app}"; Flags: ignoreversion
 
 ; Optional default config
 Source: "config.json"; DestDir: "{commonappdata}\WoWWatchdog"; Flags: onlyifdoesntexist ignoreversion
