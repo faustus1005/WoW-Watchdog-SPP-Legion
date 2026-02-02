@@ -38,6 +38,7 @@ $StatusFile      = Join-Path $DataDir "watchdog.status.json"    # GUI reads rich
 
 $CommandDir = $DataDir
 
+# Command files are dropped by the GUI to request immediate actions.
 $CommandFiles = @{
     StartMySQL      = Join-Path $CommandDir "command.start.mysql"
     StopMySQL       = Join-Path $CommandDir "command.stop.mysql"
@@ -57,11 +58,12 @@ function Get-HoldFile {
 
 function Is-RoleHeld {
     param([Parameter(Mandatory)][ValidateSet("MySQL","Authserver","Worldserver")][string]$Role)
+    # Hold files are created by the GUI to pause restarts for a role.
     return (Test-Path (Get-HoldFile -Role $Role))
 }
 
 
-# Log only on config-state changes (prevents spam)
+# Log only on config-state changes (prevents spam during retries)
 $global:LastConfigValidity = $null   # $true=valid, $false=invalid, $null=unknown
 $global:LastConfigIssueSig = ""      # signature of last issues logged
 $global:LastConfigLoadState = ""   # "MissingConfig", "InvalidConfig", or ""
@@ -190,6 +192,7 @@ function Try-ConsumeCommandFile {
 
     if (-not (Test-Path -LiteralPath $Path)) { return $false }
 
+    # Atomically rename the file to claim it; this prevents double-processing.
     $dir = Split-Path -Parent $Path
     $claimed = Join-Path $dir ("{0}.processing.{1}" -f ([System.IO.Path]::GetFileName($Path)), ([guid]::NewGuid().ToString("N")))
 
@@ -229,6 +232,7 @@ function Test-ProcessRoleRunning {
         $expectedExe = $ExpectedPath
     }
 
+    # If we have an explicit expected path, confirm the exact executable.
     if ($expectedExe) {
         $expectedExeFull = $expectedExe
         try { $expectedExeFull = [System.IO.Path]::GetFullPath($expectedExe) } catch { }
@@ -250,6 +254,7 @@ function Test-ProcessRoleRunning {
         return $false
     }
 
+    # Fallback: look for known process name aliases.
     foreach ($p in $ProcessAliases[$Role]) {
         try {
             if (Get-Process -Name $p -ErrorAction SilentlyContinue) { return $true }
@@ -316,6 +321,7 @@ function Ensure-ConfigSchema {
     )
 
     $changed = $false
+    # Ensure any new default properties are backfilled into existing configs.
     foreach ($p in $Defaults.PSObject.Properties) {
         if (-not $Cfg.PSObject.Properties[$p.Name]) {
             $Cfg | Add-Member -MemberType NoteProperty -Name $p.Name -Value $p.Value
@@ -366,6 +372,7 @@ function Load-ConfigSafe {
 function Test-ConfigPaths {
     param($Cfg)
 
+    # Validate that configured paths exist before starting processes.
     $issues = New-Object System.Collections.Generic.List[string]
 
     $pairs = @(
@@ -396,7 +403,7 @@ function Start-Target {
         [Parameter(Mandatory)][string]$Path
     )
 
-    # Batch files need cmd.exe
+    # Batch files need cmd.exe for proper execution.
     if ($Path -match '\.bat$') {
         Start-Process -FilePath "cmd.exe" `
             -ArgumentList "/c `"$Path`"" `
@@ -405,7 +412,7 @@ function Start-Target {
         return
     }
 
-    # EXE path
+    # Direct EXE path.
     Start-Process -FilePath $Path `
         -WorkingDirectory (Split-Path $Path) `
         -WindowStyle Hidden
@@ -421,6 +428,7 @@ function Stop-Role {
         [string]$Role
     )
 
+    # Stop by process name aliases to handle renamed binaries.
     foreach ($p in $ProcessAliases[$Role]) {
         try {
             Get-Process -Name $p -ErrorAction SilentlyContinue |
@@ -443,6 +451,7 @@ function Stop-All-Gracefully {
 
     Log "Graceful shutdown initiated."
 
+    # Stop in reverse dependency order: World -> Auth -> DB.
     Stop-Role -Role "Worldserver"
     if (-not (Wait-ForRoleDown -Role "Worldserver" -ExpectedPath ([string]$Cfg.Worldserver) -TimeoutSec $WaitTimeoutSec)) {
         Log "Graceful shutdown wait timed out for Worldserver."
@@ -527,18 +536,18 @@ function Ensure-Role {
         [string]$Path
     )
 
-    # Manual hold (GUI-requested stop) — do not restart
+    # Manual hold (GUI-requested stop) — do not restart.
     if (Is-RoleHeld -Role $Role) {
         return
     }
 
     if (Test-ProcessRoleRunning -Role $Role -ExpectedPath $Path) { return }
 
-    # Restart cooldown
+    # Restart cooldown.
     $delta = ((Get-Date) - $LastRestart[$Role]).TotalSeconds
     if ($delta -lt $RestartCooldown) { return }
 
-    # Worldserver crash-loop protection
+    # Worldserver crash-loop protection.
     if ($Role -eq "Worldserver") {
         $now = Get-Date
         if (-not $WorldBurstStart) {
@@ -643,7 +652,7 @@ function Process-Commands {
 # -------------------------------
 while ($true) {
     try {
-        # Stop signal (GUI writes this)
+        # Stop signal (GUI writes this) triggers graceful shutdown.
         if (Try-ConsumeCommandFile -Path $StopSignalFile) {
             Log "Stop signal detected ($StopSignalFile). Initiating graceful shutdown."
 
@@ -654,7 +663,7 @@ while ($true) {
 
         }
 
-        # Reload config periodically or if not loaded
+        # Reload config periodically or if not loaded.
         $sinceCfg = ((Get-Date) - $lastConfigCheck).TotalSeconds
         if (-not $cfg -or $sinceCfg -ge $ConfigRetrySec -or -not $pathsOk) {
             $lastConfigCheck = Get-Date
@@ -665,7 +674,7 @@ while ($true) {
                 $issues = Test-ConfigPaths -Cfg $cfg
                 $issuesLast = $issues
 
-if ($issues.Count -gt 0) {
+                if ($issues.Count -gt 0) {
 
     # Build a stable signature so we only log when the issue set changes
     $sig = ($issues | Sort-Object) -join " | "
@@ -700,7 +709,7 @@ if ($issues.Count -gt 0) {
 
         Process-Commands -Cfg $cfg
 
-        # Ensure roles
+        # Ensure roles (dependency order is enforced below).
         Ensure-Role -Role "MySQL" -Path ([string]$cfg.MySQL)
 
 if (Test-ProcessRoleRunning -Role "MySQL" -ExpectedPath ([string]$cfg.MySQL)) {
@@ -712,7 +721,7 @@ if (Test-ProcessRoleRunning -Role "Authserver" -ExpectedPath ([string]$cfg.Auths
 }
 
 
-        # Heartbeat + lightweight telemetry for GUI
+        # Heartbeat + lightweight telemetry for GUI.
             $extra = @{
                 mysqlRunning = (Test-ProcessRoleRunning -Role "MySQL" -ExpectedPath ([string]$cfg.MySQL))
                 authRunning  = (Test-ProcessRoleRunning -Role "Authserver" -ExpectedPath ([string]$cfg.Authserver))
