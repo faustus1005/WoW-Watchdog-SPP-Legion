@@ -395,6 +395,13 @@ function Convert-HexToColor {
     return [System.Windows.Media.Color]::FromArgb($a, $r, $g, $b)
 }
 
+function Convert-HexToBrush {
+    param([Parameter(Mandatory)][string]$Hex)
+    $brush = New-Object System.Windows.Media.SolidColorBrush (Convert-HexToColor -Hex $Hex)
+    $brush.Freeze()
+    return $brush
+}
+
 $ThemePalettes = [ordered]@{
     Default = [ordered]@{
         "Theme.WindowBackgroundBrush"    = "#FF0D111A"
@@ -439,30 +446,6 @@ $ThemePalettes = [ordered]@{
         "Theme.TitleCloseBorderBrush"    = "#FF6D2B2B"
         "Theme.TextHeadingBrush"         = "#FFD9C784"
         "Theme.TextSubtleBrush"          = "#FFA8C46C"
-        "Theme.TextDisabledBrush"        = "#FF777777"
-        "Theme.TextWarningBrush"         = "#FFFFB347"
-        "Theme.TextInfoBrush"            = "#FFE6F2FF"
-        "Theme.TextHighlightBrush"       = "#FFFFD24D"
-    }
-    "Legion V2" = [ordered]@{
-        "Theme.WindowBackgroundBrush"    = "#FF0A0E0B"
-        "Theme.InputBackgroundBrush"     = "#FF0F1612"
-        "Theme.TitleBackgroundBrush"     = "#FF0F1713"
-        "Theme.PanelGradientTopColor"    = "#FF141D18"
-        "Theme.PanelGradientBottomColor" = "#FF0E1410"
-        "Theme.BorderStrongBrush"        = "#FF2C4331"
-        "Theme.BorderInputBrush"         = "#FF3B5A3C"
-        "Theme.ButtonPrimaryBrush"       = "#FFB48E3A"
-        "Theme.ButtonPrimaryBorderBrush" = "#FF8C6C26"
-        "Theme.ButtonStartBrush"         = "#FF2FAE4F"
-        "Theme.ButtonStartBorderBrush"   = "#FF1E7A3A"
-        "Theme.ButtonStopBrush"          = "#FF7D2E2E"
-        "Theme.ButtonStopBorderBrush"    = "#FF5A1E1E"
-        "Theme.ButtonSecondaryBrush"     = "#FF1B2B21"
-        "Theme.TitleCloseBackgroundBrush"= "#FF4A2020"
-        "Theme.TitleCloseBorderBrush"    = "#FF6E2C2C"
-        "Theme.TextHeadingBrush"         = "#FFDFC688"
-        "Theme.TextSubtleBrush"          = "#FF8FD485"
         "Theme.TextDisabledBrush"        = "#FF777777"
         "Theme.TextWarningBrush"         = "#FFFFB347"
         "Theme.TextInfoBrush"            = "#FFE6F2FF"
@@ -4671,9 +4654,10 @@ function Set-ThemeResources {
         $hex = $entry.Value
         if ($key -like "*Color") {
             $Window.Resources[$key] = Convert-HexToColor -Hex $hex
+        } elseif ($key -like "*Brush") {
+            $Window.Resources[$key] = Convert-HexToBrush -Hex $hex
         } else {
-            $brush = New-Object System.Windows.Media.SolidColorBrush (Convert-HexToColor -Hex $hex)
-            $Window.Resources[$key] = $brush
+            $Window.Resources[$key] = Convert-HexToBrush -Hex $hex
         }
     }
 }
