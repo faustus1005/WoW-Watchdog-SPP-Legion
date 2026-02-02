@@ -10,11 +10,35 @@
 
 <Window.Resources>
 
+  <!-- Theme resources (default palette) -->
+  <SolidColorBrush x:Key="Theme.WindowBackgroundBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.InputBackgroundBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.TitleBackgroundBrush" Color="Transparent"/>
+  <Color x:Key="Theme.PanelGradientTopColor">Transparent</Color>
+  <Color x:Key="Theme.PanelGradientBottomColor">Transparent</Color>
+  <SolidColorBrush x:Key="Theme.BorderStrongBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.BorderInputBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.ButtonPrimaryBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.ButtonPrimaryBorderBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.ButtonStartBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.ButtonStartBorderBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.ButtonStopBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.ButtonStopBorderBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.ButtonSecondaryBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.TitleCloseBackgroundBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.TitleCloseBorderBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.TextHeadingBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.TextSubtleBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.TextDisabledBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.TextWarningBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.TextInfoBrush" Color="Transparent"/>
+  <SolidColorBrush x:Key="Theme.TextHighlightBrush" Color="Transparent"/>
+
   <!-- Unified TextBox Style -->
   <Style TargetType="TextBox">
-    <Setter Property="Background" Value="#FF0F141F"/>
+    <Setter Property="Background" Value="{DynamicResource Theme.InputBackgroundBrush}"/>
     <Setter Property="Foreground" Value="White"/>
-    <Setter Property="BorderBrush" Value="#FF345A8A"/>
+    <Setter Property="BorderBrush" Value="{DynamicResource Theme.BorderInputBrush}"/>
     <Setter Property="CaretBrush" Value="White"/>
     <Setter Property="Padding" Value="6,3"/>
   </Style>
@@ -25,36 +49,36 @@
 
 <!-- Primary action (blue) -->
 <Style x:Key="BtnPrimary" TargetType="Button">
-  <Setter Property="Background" Value="#FF3478BF"/>
+  <Setter Property="Background" Value="{DynamicResource Theme.ButtonPrimaryBrush}"/>
   <Setter Property="Foreground" Value="White"/>
-  <Setter Property="BorderBrush" Value="#FF2B5E9A"/>
+  <Setter Property="BorderBrush" Value="{DynamicResource Theme.ButtonPrimaryBorderBrush}"/>
   <Setter Property="BorderThickness" Value="1"/>
   <Setter Property="Padding" Value="10,4"/>
 </Style>
 
 <!-- Start / positive (green) -->
 <Style x:Key="BtnStart" TargetType="Button">
-  <Setter Property="Background" Value="#FF2D7A3A"/>
+  <Setter Property="Background" Value="{DynamicResource Theme.ButtonStartBrush}"/>
   <Setter Property="Foreground" Value="White"/>
-  <Setter Property="BorderBrush" Value="#FF1E5A2B"/>
+  <Setter Property="BorderBrush" Value="{DynamicResource Theme.ButtonStartBorderBrush}"/>
   <Setter Property="BorderThickness" Value="1"/>
   <Setter Property="Padding" Value="10,4"/>
 </Style>
 
 <!-- Stop / destructive (red) -->
 <Style x:Key="BtnStop" TargetType="Button">
-  <Setter Property="Background" Value="#FF7A3A3A"/>
+  <Setter Property="Background" Value="{DynamicResource Theme.ButtonStopBrush}"/>
   <Setter Property="Foreground" Value="White"/>
-  <Setter Property="BorderBrush" Value="#FF5A2626"/>
+  <Setter Property="BorderBrush" Value="{DynamicResource Theme.ButtonStopBorderBrush}"/>
   <Setter Property="BorderThickness" Value="1"/>
   <Setter Property="Padding" Value="10,4"/>
 </Style>
 
 <!-- Neutral / secondary (dark blue-gray) -->
 <Style x:Key="BtnSecondary" TargetType="Button">
-  <Setter Property="Background" Value="#FF1B2A42"/>
+  <Setter Property="Background" Value="{DynamicResource Theme.ButtonSecondaryBrush}"/>
   <Setter Property="Foreground" Value="White"/>
-  <Setter Property="BorderBrush" Value="#FF2B3E5E"/>
+  <Setter Property="BorderBrush" Value="{DynamicResource Theme.BorderStrongBrush}"/>
   <Setter Property="BorderThickness" Value="1"/>
   <Setter Property="Padding" Value="10,4"/>
 </Style>
@@ -63,8 +87,8 @@
   <!-- Unified ComboBox Style -->
   <Style TargetType="ComboBox">
   <Setter Property="Foreground" Value="White"/>
-  <Setter Property="Background" Value="#FF0F141F"/>
-  <Setter Property="BorderBrush" Value="#FF345A8A"/>
+  <Setter Property="Background" Value="{DynamicResource Theme.InputBackgroundBrush}"/>
+  <Setter Property="BorderBrush" Value="{DynamicResource Theme.BorderInputBrush}"/>
   <Setter Property="BorderThickness" Value="1"/>
   <Setter Property="Padding" Value="6,3"/>
   <Setter Property="Template">
@@ -110,8 +134,8 @@
                  AllowsTransparency="True"
                  Focusable="False"
                  PopupAnimation="Fade">
-            <Border Background="#FF0F141F"
-                    BorderBrush="#FF345A8A"
+            <Border Background="{DynamicResource Theme.InputBackgroundBrush}"
+                    BorderBrush="{DynamicResource Theme.BorderInputBrush}"
                     BorderThickness="1">
               <ScrollViewer>
                 <ItemsPresenter/>
@@ -123,7 +147,7 @@
 
         <ControlTemplate.Triggers>
           <Trigger Property="IsEnabled" Value="False">
-            <Setter Property="TextElement.Foreground" Value="#FF777777"/>
+            <Setter Property="TextElement.Foreground" Value="{DynamicResource Theme.TextDisabledBrush}"/>
           </Trigger>
         </ControlTemplate.Triggers>
 
@@ -135,8 +159,8 @@
 </Window.Resources>
 
   <Border CornerRadius="14"
-          Background="#FF0D111A"
-          BorderBrush="#FF2B3E5E"
+          Background="{DynamicResource Theme.WindowBackgroundBrush}"
+          BorderBrush="{DynamicResource Theme.BorderStrongBrush}"
           BorderThickness="1"
           SnapsToDevicePixels="True">
 
@@ -154,7 +178,7 @@
       <Border Grid.Row="0"
               CornerRadius="12"
               Padding="10,8"
-              Background="#FF101829">
+              Background="{DynamicResource Theme.TitleBackgroundBrush}">
         <Grid>
           <Grid.ColumnDefinitions>
             <ColumnDefinition Width="*"/>
@@ -164,12 +188,12 @@
 
           <StackPanel Orientation="Horizontal">
             <TextBlock Text="WoW Watchdog"
-                       Foreground="#FFBDDCFF"
+                       Foreground="{DynamicResource Theme.TextHeadingBrush}"
                        FontWeight="Bold"
                        FontSize="16"
                        VerticalAlignment="Center"/>
             <TextBlock Text="  -  GUI + Watchdog Monitor"
-                       Foreground="#FF86B5E5"
+                       Foreground="{DynamicResource Theme.TextSubtleBrush}"
                        FontSize="12"
                        VerticalAlignment="Center"
                        Margin="8,2,0,0"/>
@@ -180,25 +204,25 @@
                   Content="-"
                   Width="32" Height="28"
                   Margin="0,0,6,0"
-                  Background="#FF1B2A42"
+                  Background="{DynamicResource Theme.ButtonSecondaryBrush}"
                   Foreground="White"
-                  BorderBrush="#FF2B3E5E"/>
+                  BorderBrush="{DynamicResource Theme.BorderStrongBrush}"/>
 
           <Button x:Name="BtnClose"
                   Grid.Column="2"
                   Content="X"
                   Width="32" Height="28"
-                  Background="#FF3A1B1B"
+                  Background="{DynamicResource Theme.TitleCloseBackgroundBrush}"
                   Foreground="White"
-                  BorderBrush="#FF5E2B2B"/>
+                  BorderBrush="{DynamicResource Theme.TitleCloseBorderBrush}"/>
         </Grid>
       </Border>
 
       <!-- Main -->
       <Grid Grid.Row="1" Margin="0,10,0,0">
         <TabControl Margin="0,0,0,0"
-            Background="#FF0D111A"
-            BorderBrush="#FF2B3E5E"
+            Background="{DynamicResource Theme.WindowBackgroundBrush}"
+            BorderBrush="{DynamicResource Theme.BorderStrongBrush}"
             Foreground="White"
             Padding="4">
 
@@ -226,13 +250,13 @@
         <GroupBox Grid.Row="0" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Stretch">
           <GroupBox.Header>
             <TextBlock Text="Controls"
-                       Foreground="#FFBDDCFF"
+                       Foreground="{DynamicResource Theme.TextHeadingBrush}"
                        FontWeight="SemiBold"/>
           </GroupBox.Header>
           <GroupBox.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-              <GradientStop Color="#FF151B28" Offset="0.0" />
-              <GradientStop Color="#FF111623" Offset="1.0" />
+              <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0" />
+              <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0" />
             </LinearGradientBrush>
           </GroupBox.Background>
 
@@ -246,20 +270,20 @@
             <!-- Watchdog -->
             <StackPanel Grid.Row="0" Margin="0,0,0,12">
               <TextBlock Text="Watchdog"
-                         Foreground="#FF86B5E5"
+                         Foreground="{DynamicResource Theme.TextSubtleBrush}"
                          FontWeight="SemiBold"
                          Margin="0,0,0,6"/>
               <StackPanel Orientation="Horizontal">
                 <Button x:Name="BtnStartWatchdog"
                         Content="Start Watchdog"
                         MinWidth="160"
-                        Background="#FF2D7A3A"
+                        Background="{DynamicResource Theme.ButtonStartBrush}"
                         Foreground="White"
                         Margin="0,0,10,0"/>
                 <Button x:Name="BtnStopWatchdog"
                         Content="Stop Watchdog"
                         MinWidth="160"
-                        Background="#FF7A3A3A"
+                        Background="{DynamicResource Theme.ButtonStopBrush}"
                         Foreground="White"/>
               </StackPanel>
             </StackPanel>
@@ -267,7 +291,7 @@
             <!-- Service Control -->
             <StackPanel Grid.Row="1" Margin="0,0,0,12">
               <TextBlock Text="Service Control"
-                         Foreground="#FF86B5E5"
+                         Foreground="{DynamicResource Theme.TextSubtleBrush}"
                          FontWeight="SemiBold"
                          Margin="0,0,0,6"/>
 
@@ -314,7 +338,7 @@
             <!-- Stack Actions -->
             <StackPanel Grid.Row="2">
               <TextBlock Text="Stack Actions"
-                         Foreground="#FF86B5E5"
+                         Foreground="{DynamicResource Theme.TextSubtleBrush}"
                          FontWeight="SemiBold"
                          Margin="0,0,0,6"/>
               <StackPanel Orientation="Horizontal">
@@ -343,13 +367,13 @@
         <GroupBox Grid.Row="1" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Stretch">
           <GroupBox.Header>
             <TextBlock Text="Status"
-                       Foreground="#FFBDDCFF"
+                       Foreground="{DynamicResource Theme.TextHeadingBrush}"
                        FontWeight="SemiBold"/>
           </GroupBox.Header>
           <GroupBox.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-              <GradientStop Color="#FF151B28" Offset="0.0" />
-              <GradientStop Color="#FF111623" Offset="1.0" />
+              <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0" />
+              <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0" />
             </LinearGradientBrush>
           </GroupBox.Background>
 
@@ -373,11 +397,11 @@
 
             <WrapPanel Grid.Row="1" Margin="0,0,0,8">
               <TextBlock Text="Service:"
-                         Foreground="#FF86B5E5"
+                         Foreground="{DynamicResource Theme.TextSubtleBrush}"
                          Margin="0,0,6,0"/>
               <TextBlock x:Name="TxtServiceStatus"
                          Text="Not installed"
-                         Foreground="#FFFFB347"
+                         Foreground="{DynamicResource Theme.TextWarningBrush}"
                          FontWeight="SemiBold"/>
             </WrapPanel>
 
@@ -400,7 +424,7 @@
 
             <!-- Online Players moved into Status -->
             <WrapPanel Grid.Row="3">
-              <TextBlock Text="Online Players:" Foreground="#FF86B5E5" Margin="0,0,6,0"/>
+              <TextBlock Text="Online Players:" Foreground="{DynamicResource Theme.TextSubtleBrush}" Margin="0,0,6,0"/>
               <TextBlock x:Name="TxtOnlinePlayers"
                          Text="-"
                          FontSize="16"
@@ -425,7 +449,7 @@
 
             <TextBlock Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="3"
                         Text="Resource Utilization (Snapshot)"
-                        Foreground="#FF86B5E5"
+                        Foreground="{DynamicResource Theme.TextSubtleBrush}"
                         Margin="0,0,0,6"/>
 
             <!-- MySQL -->
@@ -446,7 +470,7 @@
 
             <!-- World Uptime -->
             <WrapPanel Grid.Row="5" Margin="0,10,0,0">
-            <TextBlock Text="World Uptime:" Foreground="#FF86B5E5" Margin="0,0,6,0"/>
+            <TextBlock Text="World Uptime:" Foreground="{DynamicResource Theme.TextSubtleBrush}" Margin="0,0,6,0"/>
             <TextBlock x:Name="TxtWorldUptime"
                         Text="-"
                         FontWeight="SemiBold"
@@ -461,21 +485,21 @@
     <GridSplitter Grid.Row="1"
                   Height="6"
                   HorizontalAlignment="Stretch"
-                  Background="#FF345A8A"
+                  Background="{DynamicResource Theme.BorderInputBrush}"
                   ShowsPreview="True"/>
 
     <!-- Live Log (Main tab only) -->
     <GroupBox Grid.Row="2" Foreground="White" HorizontalAlignment="Stretch" Margin="0,8,0,0">
   <GroupBox.Header>
     <TextBlock Text="Live Log"
-               Foreground="#FFBDDCFF"
+               Foreground="{DynamicResource Theme.TextHeadingBrush}"
                FontWeight="SemiBold"/>
   </GroupBox.Header>
 
   <GroupBox.Background>
     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-      <GradientStop Color="#FF151B28" Offset="0.0" />
-      <GradientStop Color="#FF111623" Offset="1.0" />
+      <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0" />
+      <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0" />
     </LinearGradientBrush>
   </GroupBox.Background>
 
@@ -494,16 +518,16 @@
 
       <TextBlock Grid.Column="0"
                  Text="watchdog.log (updates every second)"
-                 Foreground="#FF86B5E5"/>
+                 Foreground="{DynamicResource Theme.TextSubtleBrush}"/>
 
       <Button x:Name="BtnClearLog"
               Grid.Column="1"
               Content="Clear Log"
               MinWidth="100"
               Margin="10,0,0,0"
-              Background="#FF1B2A42"
+              Background="{DynamicResource Theme.ButtonSecondaryBrush}"
               Foreground="White"
-              BorderBrush="#FF2B3E5E"/>
+              BorderBrush="{DynamicResource Theme.BorderStrongBrush}"/>
     </Grid>
 
     <!-- Log row -->
@@ -515,9 +539,9 @@
                FontSize="12"
                IsReadOnly="True"
                TextWrapping="NoWrap"
-               Background="#FF0F141F"
-               Foreground="#FFE6F2FF"
-               BorderBrush="#FF345A8A"
+               Background="{DynamicResource Theme.InputBackgroundBrush}"
+               Foreground="{DynamicResource Theme.TextInfoBrush}"
+               BorderBrush="{DynamicResource Theme.BorderInputBrush}"
                VerticalScrollBarVisibility="Disabled"
                HorizontalScrollBarVisibility="Disabled"/>
     </ScrollViewer>
@@ -536,6 +560,7 @@
       <Grid>
         <Grid.RowDefinitions>
           <RowDefinition Height="Auto"/> <!-- Server Paths -->
+          <RowDefinition Height="Auto"/> <!-- Appearance -->
           <RowDefinition Height="Auto"/> <!-- DB Settings -->
           <RowDefinition Height="Auto"/> <!-- NTFY -->
           <RowDefinition Height="Auto"/> <!-- Worldserver Telnet -->
@@ -546,13 +571,13 @@
         <GroupBox Grid.Row="0" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Stretch">
           <GroupBox.Header>
             <TextBlock Text="Server Paths"
-                       Foreground="#FFBDDCFF"
+                       Foreground="{DynamicResource Theme.TextHeadingBrush}"
                        FontWeight="SemiBold"/>
           </GroupBox.Header>
           <GroupBox.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-              <GradientStop Color="#FF151B28" Offset="0.0" />
-              <GradientStop Color="#FF111623" Offset="1.0" />
+              <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0" />
+              <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0" />
             </LinearGradientBrush>
           </GroupBox.Background>
 
@@ -571,45 +596,87 @@
 
             <TextBlock Grid.Row="0" Grid.Column="0" Text="MySQL start (.bat):" VerticalAlignment="Center" Foreground="White" Margin="0,0,4,0"/>
             <TextBox x:Name="TxtMySQL" Grid.Row="0" Grid.Column="1" Margin="4,2"
-                     Background="#FF0F141F" Foreground="White" BorderBrush="#FF345A8A"/>
+                     Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
             <Button x:Name="BtnBrowseMySQL" Grid.Row="0" Grid.Column="2" Content="Browse" MinWidth="80"
-                    Background="#FF1B2A42" Foreground="White" BorderBrush="#FF2B3E5E" Margin="6,2,0,2"/>
+                    Background="{DynamicResource Theme.ButtonSecondaryBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderStrongBrush}" Margin="6,2,0,2"/>
 
             <TextBlock Grid.Row="1" Grid.Column="0" Text="mysql.exe:" VerticalAlignment="Center" Foreground="White" Margin="0,0,4,0"/>
             <TextBox x:Name="TxtMySQLExe" Grid.Row="1" Grid.Column="1" Margin="4,2"
-                     Background="#FF0F141F" Foreground="White" BorderBrush="#FF345A8A"/>
+                     Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
             <Button x:Name="BtnBrowseMySQLExe" Grid.Row="1" Grid.Column="2" Content="Browse" MinWidth="80"
-                    Background="#FF1B2A42" Foreground="White" BorderBrush="#FF2B3E5E" Margin="6,2,0,2"/>
+                    Background="{DynamicResource Theme.ButtonSecondaryBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderStrongBrush}" Margin="6,2,0,2"/>
 
             <TextBlock Grid.Row="2" Grid.Column="0" Text="Authserver:" VerticalAlignment="Center" Foreground="White" Margin="0,0,4,0"/>
             <TextBox x:Name="TxtAuth" Grid.Row="2" Grid.Column="1" Margin="4,2"
-                     Background="#FF0F141F" Foreground="White" BorderBrush="#FF345A8A"/>
+                     Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
             <Button x:Name="BtnBrowseAuth" Grid.Row="2" Grid.Column="2" Content="Browse" MinWidth="80"
-                    Background="#FF1B2A42" Foreground="White" BorderBrush="#FF2B3E5E" Margin="6,2,0,2"/>
+                    Background="{DynamicResource Theme.ButtonSecondaryBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderStrongBrush}" Margin="6,2,0,2"/>
 
             <TextBlock Grid.Row="3" Grid.Column="0" Text="Worldserver:" VerticalAlignment="Center" Foreground="White" Margin="0,0,4,0"/>
             <TextBox x:Name="TxtWorld" Grid.Row="3" Grid.Column="1" Margin="4,2"
-                     Background="#FF0F141F" Foreground="White" BorderBrush="#FF345A8A"/>
+                     Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
             <Button x:Name="BtnBrowseWorld" Grid.Row="3" Grid.Column="2" Content="Browse" MinWidth="80"
-                    Background="#FF1B2A42" Foreground="White" BorderBrush="#FF2B3E5E" Margin="6,2,0,2"/>
+                    Background="{DynamicResource Theme.ButtonSecondaryBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderStrongBrush}" Margin="6,2,0,2"/>
+          </Grid>
+        </GroupBox>
+
+        <!-- Appearance -->
+        <GroupBox Grid.Row="1" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Stretch">
+          <GroupBox.Header>
+            <TextBlock Text="Appearance"
+                       Foreground="{DynamicResource Theme.TextHeadingBrush}"
+                       FontWeight="SemiBold"/>
+          </GroupBox.Header>
+          <GroupBox.Background>
+            <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
+              <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+              <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
+            </LinearGradientBrush>
+          </GroupBox.Background>
+
+          <Grid Margin="10">
+            <Grid.ColumnDefinitions>
+              <ColumnDefinition Width="Auto"/>
+              <ColumnDefinition Width="*"/>
+            </Grid.ColumnDefinitions>
+            <Grid.RowDefinitions>
+              <RowDefinition Height="Auto"/>
+              <RowDefinition Height="Auto"/>
+            </Grid.RowDefinitions>
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Text="Theme:"
+                       VerticalAlignment="Center"
+                       Foreground="White"
+                       Margin="0,0,8,0"/>
+            <ComboBox x:Name="CmbTheme"
+                      Grid.Row="0" Grid.Column="1"
+                      MinWidth="200"
+                      Background="{DynamicResource Theme.InputBackgroundBrush}"
+                      Foreground="White"
+                      BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
+
+            <TextBlock Grid.Row="1" Grid.Column="1"
+                       Text="Choose a theme (changes apply immediately)."
+                       Foreground="{DynamicResource Theme.TextSubtleBrush}"
+                       Margin="0,6,0,0"/>
           </Grid>
         </GroupBox>
 
         <!-- DB Settings -->
-        <GroupBox Grid.Row="1"
+        <GroupBox Grid.Row="2"
                   Margin="0,0,0,10"
                   Foreground="White"
                   HorizontalAlignment="Stretch">
           <GroupBox.Header>
             <TextBlock Text="Database Settings"
-                       Foreground="#FFBDDCFF"
+                       Foreground="{DynamicResource Theme.TextHeadingBrush}"
                        FontWeight="SemiBold"/>
           </GroupBox.Header>
 
           <GroupBox.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-              <GradientStop Color="#FF151B28" Offset="0.0"/>
-              <GradientStop Color="#FF111623" Offset="1.0"/>
+              <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+              <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
             </LinearGradientBrush>
           </GroupBox.Background>
 
@@ -653,7 +720,7 @@
             <!-- Test DB -->
             <Button x:Name="BtnTestDb" Grid.Row="2" Grid.Column="3"
                     Content="Test DB" Width="110"
-                    Background="#FF1B2A42" Foreground="White" BorderBrush="#FF2B3E5E"
+                    Background="{DynamicResource Theme.ButtonSecondaryBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderStrongBrush}"
                     Margin="0,2,0,2"/>
 
             <!-- Standout Save Password -->
@@ -662,9 +729,9 @@
                     Content="Store Database Password (Encrypted)"
                     Height="34"
                     Margin="0,8,0,0"
-                    Background="#FF3478BF"
+                    Background="{DynamicResource Theme.ButtonPrimaryBrush}"
                     Foreground="White"
-                    BorderBrush="#FF2B5E9A"
+                    BorderBrush="{DynamicResource Theme.ButtonPrimaryBorderBrush}"
                     BorderThickness="1"/>
 
             <TextBlock Grid.Row="4" Visibility="Collapsed"/>
@@ -672,17 +739,17 @@
         </GroupBox>
 
         <!-- NTFY Notifications (moved here) -->
-        <GroupBox Grid.Row="2" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Stretch">
+        <GroupBox Grid.Row="3" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Stretch">
           <GroupBox.Header>
             <TextBlock Text="NTFY Notifications"
-                       Foreground="#FFBDDCFF"
+                       Foreground="{DynamicResource Theme.TextHeadingBrush}"
                        FontWeight="SemiBold"/>
           </GroupBox.Header>
 
           <GroupBox.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-              <GradientStop Color="#FF151B28" Offset="0.0"/>
-              <GradientStop Color="#FF111623" Offset="1.0"/>
+              <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+              <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
             </LinearGradientBrush>
           </GroupBox.Background>
 
@@ -713,26 +780,26 @@
             <StackPanel Grid.Row="0" Grid.Column="1" Orientation="Horizontal" Margin="4,2">
               <ComboBox x:Name="CmbExpansion"
                         MinWidth="140"
-                        Background="#FF0F141F"
+                        Background="{DynamicResource Theme.InputBackgroundBrush}"
                         Foreground="White"
-                        BorderBrush="#FF345A8A">
-                <ComboBoxItem Content="Classic" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="TBC" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="WotLK" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="MoP" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="Legion" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="BFA" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="Shadowlands" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="Dragonflight" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="Custom" Background="#FF0F141F" Foreground="White"/>
+                        BorderBrush="{DynamicResource Theme.BorderInputBrush}">
+                <ComboBoxItem Content="Classic" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="TBC" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="WotLK" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="MoP" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="Legion" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="BFA" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="Shadowlands" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="Dragonflight" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="Custom" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
               </ComboBox>
 
               <TextBox x:Name="TxtExpansionCustom"
                        MinWidth="160"
                        Margin="8,0,0,0"
-                       Background="#FF0F141F"
+                       Background="{DynamicResource Theme.InputBackgroundBrush}"
                        Foreground="White"
-                       BorderBrush="#FF345A8A"
+                       BorderBrush="{DynamicResource Theme.BorderInputBrush}"
                        Visibility="Collapsed"
                        ToolTip="Custom expansion label (used only when Expansion = Custom)"/>
             </StackPanel>
@@ -743,9 +810,9 @@
             <TextBox Grid.Row="1" Grid.Column="1"
                      x:Name="TxtNtfyServer"
                      Margin="4,2"
-                     Background="#FF0F141F"
+                     Background="{DynamicResource Theme.InputBackgroundBrush}"
                      Foreground="White"
-                     BorderBrush="#FF345A8A"/>
+                     BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
 
             <!-- Topic -->
             <TextBlock Grid.Row="2" Grid.Column="0" Text="Topic:"
@@ -753,9 +820,9 @@
             <TextBox Grid.Row="2" Grid.Column="1"
                      x:Name="TxtNtfyTopic"
                      Margin="4,2"
-                     Background="#FF0F141F"
+                     Background="{DynamicResource Theme.InputBackgroundBrush}"
                      Foreground="White"
-                     BorderBrush="#FF345A8A"/>
+                     BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
 
             <!-- Tags -->
             <TextBlock Grid.Row="3" Grid.Column="0" Text="Tags:"
@@ -763,9 +830,9 @@
             <TextBox Grid.Row="3" Grid.Column="1"
                      x:Name="TxtNtfyTags"
                      Margin="4,2"
-                     Background="#FF0F141F"
+                     Background="{DynamicResource Theme.InputBackgroundBrush}"
                      Foreground="White"
-                     BorderBrush="#FF345A8A"/>
+                     BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
 
             <!-- Auth Mode -->
             <TextBlock Grid.Row="4" Grid.Column="0" Text="Auth Mode:"
@@ -774,9 +841,9 @@
                       x:Name="CmbNtfyAuthMode"
                       MinWidth="160"
                       Margin="4,2"
-                      Background="#FF0F141F"
+                      Background="{DynamicResource Theme.InputBackgroundBrush}"
                       Foreground="White"
-                      BorderBrush="#FF345A8A">
+                      BorderBrush="{DynamicResource Theme.BorderInputBrush}">
               <ComboBoxItem Content="None" IsSelected="True"/>
               <ComboBoxItem Content="Basic (User/Pass)"/>
               <ComboBoxItem Content="Token (Bearer)"/>
@@ -788,9 +855,9 @@
             <TextBox Grid.Row="5" Grid.Column="1"
                      x:Name="TxtNtfyUsername"
                      Margin="4,2"
-                     Background="#FF0F141F"
+                     Background="{DynamicResource Theme.InputBackgroundBrush}"
                      Foreground="White"
-                     BorderBrush="#FF345A8A"
+                     BorderBrush="{DynamicResource Theme.BorderInputBrush}"
                      Visibility="Collapsed"/>
 
             <!-- Password -->
@@ -799,9 +866,9 @@
             <PasswordBox Grid.Row="6" Grid.Column="1"
                          x:Name="TxtNtfyPassword"
                          Margin="4,2"
-                         Background="#FF0F141F"
+                         Background="{DynamicResource Theme.InputBackgroundBrush}"
                          Foreground="White"
-                         BorderBrush="#FF345A8A"
+                         BorderBrush="{DynamicResource Theme.BorderInputBrush}"
                          Visibility="Collapsed"/>
 
             <!-- Token -->
@@ -810,9 +877,9 @@
             <PasswordBox Grid.Row="7" Grid.Column="1"
                          x:Name="TxtNtfyToken"
                          Margin="4,2"
-                         Background="#FF0F141F"
+                         Background="{DynamicResource Theme.InputBackgroundBrush}"
                          Foreground="White"
-                         BorderBrush="#FF345A8A"
+                         BorderBrush="{DynamicResource Theme.BorderInputBrush}"
                          Visibility="Collapsed"/>
 
             <!-- Default Priority -->
@@ -821,14 +888,14 @@
             <ComboBox Grid.Row="8" Grid.Column="1"
                       x:Name="CmbNtfyPriorityDefault"
                       MinWidth="90"
-                      Background="#FF0F141F"
+                      Background="{DynamicResource Theme.InputBackgroundBrush}"
                       Foreground="White"
-                      BorderBrush="#FF345A8A">
-              <ComboBoxItem Content="1" Background="#FF0F141F" Foreground="White"/>
-              <ComboBoxItem Content="2" Background="#FF0F141F" Foreground="White"/>
-              <ComboBoxItem Content="3" Background="#FF0F141F" Foreground="White"/>
-              <ComboBoxItem Content="4" Background="#FF0F141F" Foreground="White"/>
-              <ComboBoxItem Content="5" Background="#FF0F141F" Foreground="White"/>
+                      BorderBrush="{DynamicResource Theme.BorderInputBrush}">
+              <ComboBoxItem Content="1" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+              <ComboBoxItem Content="2" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+              <ComboBoxItem Content="3" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+              <ComboBoxItem Content="4" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+              <ComboBoxItem Content="5" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
             </ComboBox>
 
             <!-- Services -->
@@ -857,15 +924,15 @@
               <ComboBox Grid.Row="1" Grid.Column="1"
                         x:Name="CmbPriMySQL"
                         MinWidth="90"
-                        Background="#FF0F141F"
+                        Background="{DynamicResource Theme.InputBackgroundBrush}"
                         Foreground="White"
-                        BorderBrush="#FF345A8A">
-                <ComboBoxItem Content="Auto" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="1" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="2" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="3" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="4" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="5" Background="#FF0F141F" Foreground="White"/>
+                        BorderBrush="{DynamicResource Theme.BorderInputBrush}">
+                <ComboBoxItem Content="Auto" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="1" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="2" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="3" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="4" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="5" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
               </ComboBox>
 
               <!-- Authserver -->
@@ -876,15 +943,15 @@
               <ComboBox Grid.Row="2" Grid.Column="1"
                         x:Name="CmbPriAuthserver"
                         MinWidth="90"
-                        Background="#FF0F141F"
+                        Background="{DynamicResource Theme.InputBackgroundBrush}"
                         Foreground="White"
-                        BorderBrush="#FF345A8A">
-                <ComboBoxItem Content="Auto" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="1" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="2" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="3" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="4" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="5" Background="#FF0F141F" Foreground="White"/>
+                        BorderBrush="{DynamicResource Theme.BorderInputBrush}">
+                <ComboBoxItem Content="Auto" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="1" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="2" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="3" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="4" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="5" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
               </ComboBox>
 
               <!-- Worldserver -->
@@ -895,15 +962,15 @@
               <ComboBox Grid.Row="3" Grid.Column="1"
                         x:Name="CmbPriWorldserver"
                         MinWidth="90"
-                        Background="#FF0F141F"
+                        Background="{DynamicResource Theme.InputBackgroundBrush}"
                         Foreground="White"
-                        BorderBrush="#FF345A8A">
-                <ComboBoxItem Content="Auto" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="1" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="2" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="3" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="4" Background="#FF0F141F" Foreground="White"/>
-                <ComboBoxItem Content="5" Background="#FF0F141F" Foreground="White"/>
+                        BorderBrush="{DynamicResource Theme.BorderInputBrush}">
+                <ComboBoxItem Content="Auto" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="1" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="2" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="3" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="4" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
+                <ComboBoxItem Content="5" Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White"/>
               </ComboBox>
 
               <!-- Triggers -->
@@ -912,7 +979,7 @@
                 <CheckBox x:Name="ChkNtfyOnUp" Content="Send on UP" Foreground="White" Margin="0,6,0,0"/>
                 <Button x:Name="BtnTestNtfy" Content="Test Notification"
                         Margin="0,10,0,0"
-                        Background="#FF3478BF"
+                        Background="{DynamicResource Theme.ButtonPrimaryBrush}"
                         Foreground="White"/>
               </StackPanel>
 
@@ -923,17 +990,17 @@
         <!-- Save Config (prominent, bottom) -->
         
         <!-- Worldserver Telnet -->
-        <GroupBox Grid.Row="3" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Stretch">
+        <GroupBox Grid.Row="4" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Stretch">
           <GroupBox.Header>
             <TextBlock Text="Worldserver Telnet"
-                       Foreground="#FFBDDCFF"
+                       Foreground="{DynamicResource Theme.TextHeadingBrush}"
                        FontWeight="SemiBold"/>
           </GroupBox.Header>
 
           <GroupBox.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-              <GradientStop Color="#FF151B28" Offset="0.0" />
-              <GradientStop Color="#FF111623" Offset="1.0" />
+              <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0" />
+              <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0" />
             </LinearGradientBrush>
           </GroupBox.Background>
 
@@ -963,9 +1030,9 @@
             <TextBox x:Name="TxtWorldTelnetHost"
                      Grid.Row="0" Grid.Column="1"
                      Margin="0,2,8,2"
-                     Background="#FF0F141F"
+                     Background="{DynamicResource Theme.InputBackgroundBrush}"
                      Foreground="White"
-                     BorderBrush="#FF345A8A"/>
+                     BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
 
             <TextBlock Grid.Row="0" Grid.Column="2"
                        Text="Port:"
@@ -976,9 +1043,9 @@
             <TextBox x:Name="TxtWorldTelnetPort"
                      Grid.Row="0" Grid.Column="3"
                      Margin="0,2,0,2"
-                     Background="#FF0F141F"
+                     Background="{DynamicResource Theme.InputBackgroundBrush}"
                      Foreground="White"
-                     BorderBrush="#FF345A8A"/>
+                     BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
 
             <!-- Username -->
             <TextBlock Grid.Row="1" Grid.Column="0"
@@ -990,9 +1057,9 @@
             <TextBox x:Name="TxtWorldTelnetUser"
                      Grid.Row="1" Grid.Column="1" Grid.ColumnSpan="3"
                      Margin="0,2,0,2"
-                     Background="#FF0F141F"
+                     Background="{DynamicResource Theme.InputBackgroundBrush}"
                      Foreground="White"
-                     BorderBrush="#FF345A8A"/>
+                     BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
 
             <!-- Password -->
             <TextBlock Grid.Row="2" Grid.Column="0"
@@ -1004,55 +1071,55 @@
             <PasswordBox x:Name="TxtWorldTelnetPassword"
                          Grid.Row="2" Grid.Column="1" Grid.ColumnSpan="3"
                          Margin="0,2,0,2"
-                         Background="#FF0F141F"
+                         Background="{DynamicResource Theme.InputBackgroundBrush}"
                          Foreground="White"
-                         BorderBrush="#FF345A8A"/>
+                         BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
 
             <!-- Stored status -->
             <TextBlock Grid.Row="3" Grid.Column="0"
                        Text="Stored:"
-                       Foreground="#FF86B5E5"
+                       Foreground="{DynamicResource Theme.TextSubtleBrush}"
                        VerticalAlignment="Center"
                        Margin="0,0,6,0"/>
 
             <TextBlock x:Name="LblWorldTelnetPasswordStatus"
                        Grid.Row="3" Grid.Column="1" Grid.ColumnSpan="3"
                        Text="Password not set"
-                       Foreground="#FFFFD24D"
+                       Foreground="{DynamicResource Theme.TextHighlightBrush}"
                        VerticalAlignment="Center"/>
 
             <!-- Hint -->
             <TextBlock Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="4"
                        Text="Note: Password is stored encrypted in ProgramData and is not shown after restart. To change it, enter a new password and click Save Configuration."
-                       Foreground="#FF86B5E5"
+                       Foreground="{DynamicResource Theme.TextSubtleBrush}"
                        TextWrapping="Wrap"
                        Margin="0,6,0,0"/>
           </Grid>
         </GroupBox>
 
-<GroupBox Grid.Row="4" Foreground="White" HorizontalAlignment="Stretch" Margin="0,0,0,10">
+<GroupBox Grid.Row="5" Foreground="White" HorizontalAlignment="Stretch" Margin="0,0,0,10">
           <GroupBox.Header>
             <TextBlock Text="Save"
-                       Foreground="#FFBDDCFF"
+                       Foreground="{DynamicResource Theme.TextHeadingBrush}"
                        FontWeight="SemiBold"/>
           </GroupBox.Header>
           <GroupBox.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-              <GradientStop Color="#FF151B28" Offset="0.0"/>
-              <GradientStop Color="#FF111623" Offset="1.0"/>
+              <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+              <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
             </LinearGradientBrush>
           </GroupBox.Background>
 
           <StackPanel Margin="10">
             <TextBlock Text="Save configuration changes (paths, database settings, NTFY settings)."
-                       Foreground="#FF86B5E5"
+                       Foreground="{DynamicResource Theme.TextSubtleBrush}"
                        Margin="0,0,0,8"/>
             <Button x:Name="BtnSaveConfig"
                     Content="Save Configuration"
                     Height="38"
-                    Background="#FF3478BF"
+                    Background="{DynamicResource Theme.ButtonPrimaryBrush}"
                     Foreground="White"
-                    BorderBrush="#FF2B5E9A"
+                    BorderBrush="{DynamicResource Theme.ButtonPrimaryBorderBrush}"
                     BorderThickness="1"/>
           </StackPanel>
         </GroupBox>
@@ -1076,12 +1143,12 @@
     <!-- Launchers -->
     <GroupBox Grid.Row="0" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Stretch">
       <GroupBox.Header>
-        <TextBlock Text="Launchers" Foreground="#FFBDDCFF" FontWeight="SemiBold"/>
+        <TextBlock Text="Launchers" Foreground="{DynamicResource Theme.TextHeadingBrush}" FontWeight="SemiBold"/>
       </GroupBox.Header>
       <GroupBox.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-          <GradientStop Color="#FF151B28" Offset="0.0"/>
-          <GradientStop Color="#FF111623" Offset="1.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
         </LinearGradientBrush>
       </GroupBox.Background>
 
@@ -1109,7 +1176,7 @@
         <TextBlock Grid.Row="0"
                    Grid.Column="1"
                    TextWrapping="Wrap"
-                   Foreground="#FF86B5E5"
+                   Foreground="{DynamicResource Theme.TextSubtleBrush}"
                    VerticalAlignment="Center">
           <Hyperlink NavigateUri="https://github.com/skeezerbean">
             If not already installed by the launcher, the latest release will be downloaded. Credit to Skeezerbean.
@@ -1130,7 +1197,7 @@
                    Grid.Column="1"
                    Margin="0,8,0,0"
                    TextWrapping="Wrap"
-                   Foreground="#FF86B5E5"
+                   Foreground="{DynamicResource Theme.TextSubtleBrush}"
                    VerticalAlignment="Center">
           Downloads and extracts BattleShopEditor if missing, then launches it.
         </TextBlock>
@@ -1140,12 +1207,12 @@
     <!-- Database Backup / Restore -->
     <GroupBox Grid.Row="1" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Stretch">
       <GroupBox.Header>
-        <TextBlock Text="Database Backup / Restore" Foreground="#FFBDDCFF" FontWeight="SemiBold"/>
+        <TextBlock Text="Database Backup / Restore" Foreground="{DynamicResource Theme.TextHeadingBrush}" FontWeight="SemiBold"/>
       </GroupBox.Header>
       <GroupBox.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-          <GradientStop Color="#FF151B28" Offset="0.0"/>
-          <GradientStop Color="#FF111623" Offset="1.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
         </LinearGradientBrush>
       </GroupBox.Background>
 
@@ -1170,7 +1237,7 @@
         <!-- BACKUP -->
         <TextBlock Grid.Row="0" Grid.Column="0"
                    VerticalAlignment="Center"
-                   Foreground="#FF86B5E5"
+                   Foreground="{DynamicResource Theme.TextSubtleBrush}"
                    Text="Backup folder:"/>
 
         <TextBox x:Name="TxtDbBackupFolder"
@@ -1195,7 +1262,7 @@
                     Margin="0,0,18,0"/>
 
           <TextBlock Text="Retention (days):"
-                     Foreground="#FF86B5E5"
+                     Foreground="{DynamicResource Theme.TextSubtleBrush}"
                      VerticalAlignment="Center"
                      Margin="0,0,8,0"/>
 
@@ -1213,7 +1280,7 @@
         <!-- Status / progress (initially hidden) -->
         <StackPanel Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="2" Margin="0,2,10,0">
           <TextBlock x:Name="TxtDbBackupStatus"
-                     Foreground="#FF86B5E5"
+                     Foreground="{DynamicResource Theme.TextSubtleBrush}"
                      Text=" "
                      Visibility="Collapsed"/>
           <ProgressBar x:Name="PbDbBackup"
@@ -1224,12 +1291,12 @@
 
         <Separator Grid.Row="3" Grid.Column="0" Grid.ColumnSpan="3"
                    Margin="0,10,0,10"
-                   Background="#FF2B3E5E"/>
+                   Background="{DynamicResource Theme.BorderStrongBrush}"/>
 
         <!-- RESTORE -->
         <TextBlock Grid.Row="4" Grid.Column="0"
                    VerticalAlignment="Center"
-                   Foreground="#FF86B5E5"
+                   Foreground="{DynamicResource Theme.TextSubtleBrush}"
                    Text="Restore .sql/.zip file:"/>
 
         <TextBox x:Name="TxtDbRestoreFile"
@@ -1246,7 +1313,7 @@
 
         <TextBlock Grid.Row="5" Grid.Column="0"
                    VerticalAlignment="Center"
-                   Foreground="#FF86B5E5"
+                   Foreground="{DynamicResource Theme.TextSubtleBrush}"
                    Text="Databases in file:"/>
 
         <TextBox x:Name="TxtDbRestoreDatabases"
@@ -1261,20 +1328,20 @@
 
         <TextBlock Grid.Row="5" Grid.Column="2"
                    VerticalAlignment="Center"
-                   Foreground="#FF86B5E5"
+                   Foreground="{DynamicResource Theme.TextSubtleBrush}"
                    Text="(Multi-DB restore)"/>
 
         <CheckBox x:Name="ChkDbRestoreConfirm"
                   Grid.Row="6" Grid.Column="0" Grid.ColumnSpan="3"
                   Margin="0,6,0,8"
-                  Foreground="#FFFFB347"
+                  Foreground="{DynamicResource Theme.TextWarningBrush}"
                   Content="I understand this will overwrite data in the databases contained in the file."/>
 
         <!-- Status / progress (initially hidden) -->
         <StackPanel Grid.Row="7" Grid.Column="0" Grid.ColumnSpan="2"
                     Margin="0,2,10,0">
           <TextBlock x:Name="TxtDbRestoreStatus"
-                     Foreground="#FF86B5E5"
+                     Foreground="{DynamicResource Theme.TextSubtleBrush}"
                      Text=" "
                      Visibility="Collapsed"/>
           <ProgressBar x:Name="PbDbRestore"
@@ -1296,12 +1363,12 @@
     <!-- Repack Backup -->
     <GroupBox Grid.Row="2" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Stretch">
       <GroupBox.Header>
-        <TextBlock Text="Repack Backup" Foreground="#FFBDDCFF" FontWeight="SemiBold"/>
+        <TextBlock Text="Repack Backup" Foreground="{DynamicResource Theme.TextHeadingBrush}" FontWeight="SemiBold"/>
       </GroupBox.Header>
       <GroupBox.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-          <GradientStop Color="#FF151B28" Offset="0.0"/>
-          <GradientStop Color="#FF0F141F" Offset="1.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
         </LinearGradientBrush>
       </GroupBox.Background>
 
@@ -1322,7 +1389,7 @@
 
         <TextBlock Grid.Row="0" Grid.Column="0"
                    VerticalAlignment="Center"
-                   Foreground="#FF86B5E5"
+                   Foreground="{DynamicResource Theme.TextSubtleBrush}"
                    Text="Repack folder:"/>
 
         <TextBox x:Name="TxtRepackRoot"
@@ -1339,7 +1406,7 @@
 
         <TextBlock Grid.Row="1" Grid.Column="0"
                    VerticalAlignment="Center"
-                   Foreground="#FF86B5E5"
+                   Foreground="{DynamicResource Theme.TextSubtleBrush}"
                    Text="Backup destination:"/>
 
         <TextBox x:Name="TxtRepackBackupDest"
@@ -1388,7 +1455,7 @@
 
         <TextBlock x:Name="TxtRepackBackupStatus"
                    Grid.Row="4" Grid.Column="0" Grid.ColumnSpan="3"
-                   Foreground="#FF86B5E5"
+                   Foreground="{DynamicResource Theme.TextSubtleBrush}"
                    TextWrapping="Wrap"
                    Margin="0,8,0,0"
                    Visibility="Collapsed"/>
@@ -1398,7 +1465,7 @@
     <!-- Optional: status text -->
     <TextBlock Grid.Row="3"
                x:Name="TxtToolsStatus"
-               Foreground="#FF86B5E5"
+               Foreground="{DynamicResource Theme.TextSubtleBrush}"
                TextWrapping="Wrap"/>
   </Grid>
 </TabItem>
@@ -1417,13 +1484,13 @@
     <!-- Connection -->
     <GroupBox Grid.Row="0" Margin="0,0,0,10" Foreground="White" HorizontalAlignment="Stretch">
       <GroupBox.Header>
-        <TextBlock Text="Telnet Connection" Foreground="#FFBDDCFF" FontWeight="SemiBold"/>
+        <TextBlock Text="Telnet Connection" Foreground="{DynamicResource Theme.TextHeadingBrush}" FontWeight="SemiBold"/>
       </GroupBox.Header>
 
       <GroupBox.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-          <GradientStop Color="#FF151B28" Offset="0.0"/>
-          <GradientStop Color="#FF111623" Offset="1.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
         </LinearGradientBrush>
       </GroupBox.Background>
 
@@ -1454,7 +1521,7 @@
 
         <TextBlock Grid.Column="2"
                    Text="Target:"
-                   Foreground="#FF86B5E5"
+                   Foreground="{DynamicResource Theme.TextSubtleBrush}"
                    VerticalAlignment="Center"
                    Margin="0,0,6,0"/>
 
@@ -1467,7 +1534,7 @@
         <TextBlock x:Name="LblTelnetStatus"
                    Grid.Column="4"
                    Text="Disconnected"
-                   Foreground="#FFFFD24D"
+                   Foreground="{DynamicResource Theme.TextHighlightBrush}"
                    VerticalAlignment="Center"/>
 
       </Grid>
@@ -1484,13 +1551,13 @@
 
       <GroupBox Grid.Row="0" Margin="0" Foreground="White" HorizontalAlignment="Stretch">
       <GroupBox.Header>
-        <TextBlock Text="Console Output" Foreground="#FFBDDCFF" FontWeight="SemiBold"/>
+        <TextBlock Text="Console Output" Foreground="{DynamicResource Theme.TextHeadingBrush}" FontWeight="SemiBold"/>
       </GroupBox.Header>
 
       <GroupBox.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-          <GradientStop Color="#FF151B28" Offset="0.0"/>
-          <GradientStop Color="#FF111623" Offset="1.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
         </LinearGradientBrush>
       </GroupBox.Background>
 
@@ -1505,9 +1572,9 @@
                  MinHeight="220"
                  FontFamily="Consolas"
                  FontSize="13"
-                 Background="#FF0F141F"
+                 Background="{DynamicResource Theme.InputBackgroundBrush}"
                  Foreground="White"
-                 BorderBrush="#FF345A8A"
+                 BorderBrush="{DynamicResource Theme.BorderInputBrush}"
                  IsReadOnly="True"
                  AcceptsReturn="True"
                  TextWrapping="NoWrap"
@@ -1518,13 +1585,13 @@
     <!-- Command -->
     <GroupBox Grid.Row="1" Margin="0,10,0,10" Foreground="White" HorizontalAlignment="Stretch">
       <GroupBox.Header>
-        <TextBlock Text="Command" Foreground="#FFBDDCFF" FontWeight="SemiBold"/>
+        <TextBlock Text="Command" Foreground="{DynamicResource Theme.TextHeadingBrush}" FontWeight="SemiBold"/>
       </GroupBox.Header>
 
       <GroupBox.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-          <GradientStop Color="#FF151B28" Offset="0.0"/>
-          <GradientStop Color="#FF111623" Offset="1.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
         </LinearGradientBrush>
       </GroupBox.Background>
 
@@ -1537,9 +1604,9 @@
         <TextBox x:Name="TxtTelnetCommand"
                  Grid.Column="0"
                  FontFamily="Consolas"
-                 Background="#FF0F141F"
+                 Background="{DynamicResource Theme.InputBackgroundBrush}"
                  Foreground="White"
-                 BorderBrush="#FF345A8A"
+                 BorderBrush="{DynamicResource Theme.BorderInputBrush}"
                  Margin="0,0,10,0"
                  MinHeight="28"/>
 
@@ -1560,18 +1627,18 @@
                     Height="6"
                     HorizontalAlignment="Stretch"
                     VerticalAlignment="Stretch"
-                    Background="#FF345A8A"
+                    Background="{DynamicResource Theme.BorderInputBrush}"
                     ShowsPreview="True"/>
 
       <GroupBox Grid.Row="3" Margin="0" Foreground="White" HorizontalAlignment="Stretch">
   <GroupBox.Header>
-    <TextBlock Text="Worldserver Log Output" Foreground="#FFBDDCFF" FontWeight="SemiBold"/>
+    <TextBlock Text="Worldserver Log Output" Foreground="{DynamicResource Theme.TextHeadingBrush}" FontWeight="SemiBold"/>
   </GroupBox.Header>
 
   <GroupBox.Background>
     <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-      <GradientStop Color="#FF151B28" Offset="0.0"/>
-      <GradientStop Color="#FF111623" Offset="1.0"/>
+      <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+      <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
     </LinearGradientBrush>
   </GroupBox.Background>
 
@@ -1599,9 +1666,9 @@
       <TextBox x:Name="TxtWorldLogPath"
                Grid.Column="1"
                IsReadOnly="True"
-               Background="#FF0F141F"
+               Background="{DynamicResource Theme.InputBackgroundBrush}"
                Foreground="White"
-               BorderBrush="#FF345A8A"
+               BorderBrush="{DynamicResource Theme.BorderInputBrush}"
                Margin="0,0,10,0"
                MinHeight="26"/>
 
@@ -1628,9 +1695,9 @@
              MinHeight="180"
              FontFamily="Consolas"
              FontSize="13"
-             Background="#FF0F141F"
+             Background="{DynamicResource Theme.InputBackgroundBrush}"
              Foreground="White"
-             BorderBrush="#FF345A8A"
+             BorderBrush="{DynamicResource Theme.BorderInputBrush}"
              IsReadOnly="True"
              AcceptsReturn="True"
              TextWrapping="NoWrap"
@@ -1649,13 +1716,13 @@
   <Grid Margin="12">
     <GroupBox Margin="0" Foreground="White" HorizontalAlignment="Stretch">
       <GroupBox.Header>
-        <TextBlock Text="Logfile Output" Foreground="#FFBDDCFF" FontWeight="SemiBold"/>
+        <TextBlock Text="Logfile Output" Foreground="{DynamicResource Theme.TextHeadingBrush}" FontWeight="SemiBold"/>
       </GroupBox.Header>
 
       <GroupBox.Background>
         <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-          <GradientStop Color="#FF151B28" Offset="0.0"/>
-          <GradientStop Color="#FF111623" Offset="1.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+          <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
         </LinearGradientBrush>
       </GroupBox.Background>
 
@@ -1676,7 +1743,7 @@
 
           <TextBlock Grid.Column="0"
                      Text="Log file:"
-                     Foreground="#FF86B5E5"
+                     Foreground="{DynamicResource Theme.TextSubtleBrush}"
                      VerticalAlignment="Center"
                      Margin="0,0,8,0"/>
 
@@ -1684,9 +1751,9 @@
                     Grid.Column="1"
                     MinHeight="26"
                     Margin="0,0,10,0"
-                    Background="#FF0F141F"
+                    Background="{DynamicResource Theme.InputBackgroundBrush}"
                     Foreground="White"
-                    BorderBrush="#FF345A8A"
+                    BorderBrush="{DynamicResource Theme.BorderInputBrush}"
                     DisplayMemberPath="Name"
                     SelectedValuePath="Path"/>
 
@@ -1717,9 +1784,9 @@
                  MinHeight="420"
                  FontFamily="Consolas"
                  FontSize="13"
-                 Background="#FF0F141F"
+                 Background="{DynamicResource Theme.InputBackgroundBrush}"
                  Foreground="White"
-                 BorderBrush="#FF345A8A"
+                 BorderBrush="{DynamicResource Theme.BorderInputBrush}"
                  IsReadOnly="True"
                  AcceptsReturn="True"
                  TextWrapping="NoWrap"
@@ -1750,7 +1817,7 @@
                    Text="Application Updates"
                    FontSize="16"
                    FontWeight="SemiBold"
-                   Foreground="#FFBDDCFF"
+                   Foreground="{DynamicResource Theme.TextHeadingBrush}"
                    Margin="0,0,0,10"/>
 
         <!-- Update Status -->
@@ -1761,14 +1828,14 @@
 
           <GroupBox.Header>
             <TextBlock Text="Version Status"
-                       Foreground="#FFBDDCFF"
+                       Foreground="{DynamicResource Theme.TextHeadingBrush}"
                        FontWeight="SemiBold"/>
           </GroupBox.Header>
 
           <GroupBox.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-              <GradientStop Color="#FF151B28" Offset="0.0"/>
-              <GradientStop Color="#FF111623" Offset="1.0"/>
+              <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+              <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
             </LinearGradientBrush>
           </GroupBox.Background>
 
@@ -1781,7 +1848,7 @@
             <!-- Version info -->
             <WrapPanel Grid.Row="0" Margin="0,0,0,8">
               <TextBlock Text="Current Version:"
-                         Foreground="#FF86B5E5"
+                         Foreground="{DynamicResource Theme.TextSubtleBrush}"
                          Margin="0,0,6,0"/>
 
               <TextBlock x:Name="TxtCurrentVersion"
@@ -1790,7 +1857,7 @@
                          Foreground="White"/>
 
               <TextBlock Text="   Latest Version:"
-                         Foreground="#FF86B5E5"
+                         Foreground="{DynamicResource Theme.TextSubtleBrush}"
                          Margin="16,0,6,0"/>
 
               <TextBlock x:Name="TxtLatestVersion"
@@ -1807,14 +1874,14 @@
                       Content="Check for Updates"
                       MinWidth="160"
                       Margin="0,0,10,0"
-                      Background="#FF1B2A42"
+                      Background="{DynamicResource Theme.ButtonSecondaryBrush}"
                       Foreground="White"
-                      BorderBrush="#FF2B3E5E"/>
+                      BorderBrush="{DynamicResource Theme.BorderStrongBrush}"/>
 
               <Button x:Name="BtnUpdateNow"
                       Content="Update Now"
                       MinWidth="140"
-                      Background="#FF3478BF"
+                      Background="{DynamicResource Theme.ButtonPrimaryBrush}"
                       Foreground="White"
                       Visibility="Collapsed"/>
             </StackPanel>
@@ -1824,7 +1891,7 @@
 
         <TextBlock x:Name="TxtUpdateFlowStatus"
                     Text=""
-                    Foreground="#FF86B5E5"
+                    Foreground="{DynamicResource Theme.TextSubtleBrush}"
                     TextWrapping="Wrap"
                     Visibility="Collapsed"
                     Margin="0,0,0,6"/>
@@ -1849,14 +1916,14 @@
 
           <GroupBox.Header>
             <TextBlock Text="SPP V2 Legion Repack Update"
-                       Foreground="#FFBDDCFF"
+                       Foreground="{DynamicResource Theme.TextHeadingBrush}"
                        FontWeight="SemiBold"/>
           </GroupBox.Header>
 
           <GroupBox.Background>
             <LinearGradientBrush StartPoint="0,0" EndPoint="0,1">
-              <GradientStop Color="#FF151B28" Offset="0.0"/>
-              <GradientStop Color="#FF111623" Offset="1.0"/>
+              <GradientStop Color="{DynamicResource Theme.PanelGradientTopColor}" Offset="0.0"/>
+              <GradientStop Color="{DynamicResource Theme.PanelGradientBottomColor}" Offset="1.0"/>
             </LinearGradientBrush>
           </GroupBox.Background>
 
@@ -1869,7 +1936,7 @@
 
             <TextBlock Grid.Row="0"
                        TextWrapping="Wrap"
-                       Foreground="#FF86B5E5">
+                       Foreground="{DynamicResource Theme.TextSubtleBrush}">
 Stops World/Auth/MySQL, creates a full repack backup, runs the SPP V2 updater (wget + 7za + Website\Update.bat), then restarts services (MySQL -> Auth -> World). Long process, plan accordingly for down time.
             </TextBlock>
 
@@ -1884,14 +1951,14 @@ Stops World/Auth/MySQL, creates a full repack backup, runs the SPP V2 updater (w
               <TextBlock x:Name="TxtSppV2UpdateTarget"
                          Text="Target: (set Repack folder on Tools tab)"
                          Margin="12,3,0,0"
-                         Foreground="#FF86B5E5"
+                         Foreground="{DynamicResource Theme.TextSubtleBrush}"
                          VerticalAlignment="Center"/>
             </StackPanel>
 
             <StackPanel Grid.Row="2" Margin="0,10,0,0">
               <TextBlock x:Name="TxtSppV2UpdateStatus"
                          Text=""
-                         Foreground="#FF86B5E5"
+                         Foreground="{DynamicResource Theme.TextSubtleBrush}"
                          Visibility="Collapsed"
                          TextWrapping="Wrap"/>
               <ProgressBar x:Name="PbSppV2Update"
@@ -1907,7 +1974,7 @@ Stops World/Auth/MySQL, creates a full repack backup, runs the SPP V2 updater (w
         <!-- Notes -->
         <TextBlock Grid.Row="3"
                    TextWrapping="Wrap"
-                   Foreground="#FF86B5E5">
+                   Foreground="{DynamicResource Theme.TextSubtleBrush}">
 This application checks GitHub releases to determine if a newer version is available.
 Updates are applied in-place and may restart services if required.
         </TextBlock>

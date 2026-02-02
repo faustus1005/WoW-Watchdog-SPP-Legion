@@ -4,7 +4,7 @@
  
 [Setup]
 AppName=WoW Watchdog
-AppVersion=1.2.5
+AppVersion=1.2.6
 AppPublisher=WoW Watchdog Project
 DefaultDirName={commonpf32}\WoWWatchdog
 DefaultGroupName=WoW Watchdog
@@ -16,7 +16,7 @@ ArchitecturesAllowed=x86 x64compatible
 ArchitecturesInstallIn64BitMode=x64compatible
 PrivilegesRequired=admin
 UninstallDisplayIcon={app}\WoWWatcher.exe
-SetupIconFile=WoWWatcher.ico
+SetupIconFile=WoWWatchdog.ico
 WizardStyle=modern
 
 DisableWelcomePage=no
@@ -33,7 +33,7 @@ Source: "WoWWatcher.exe"; DestDir: "{app}"; Flags: ignoreversion
 Source: "watchdog.ps1"; DestDir: "{app}"; Flags: ignoreversion
 
 ; Assets
-Source: "WoWWatcher.ico"; DestDir: "{app}"; Flags: ignoreversion
+Source: "WoWWatchdog.ico"; DestDir: "{app}"; Flags: ignoreversion
 Source: "WoWWatcherGUI.xaml"; DestDir: "{app}"; Flags: ignoreversion
 Source: "nssm.exe";       DestDir: "{app}"; Flags: ignoreversion
 
@@ -58,12 +58,12 @@ Name: "{app}\Tools"
 Name: "{group}\WoW Watchdog"; \
     Filename: "{app}\WoWWatcher.exe"; \
     WorkingDir: "{app}"; \
-    IconFilename: "{app}\WoWWatcher.ico"
+    IconFilename: "{app}\WoWWatchdog.ico"
 
 Name: "{commondesktop}\WoW Watchdog"; \
     Filename: "{app}\WoWWatcher.exe"; \
     WorkingDir: "{app}"; \
-    IconFilename: "{app}\WoWWatcher.ico"
+    IconFilename: "{app}\WoWWatchdog.ico"
 
 ; --------------------------------------------------
 ; Run (Install-time)
