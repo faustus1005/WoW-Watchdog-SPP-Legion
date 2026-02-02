@@ -444,6 +444,30 @@ $ThemePalettes = [ordered]@{
         "Theme.TextInfoBrush"            = "#FFE6F2FF"
         "Theme.TextHighlightBrush"       = "#FFFFD24D"
     }
+    "Legion V2" = [ordered]@{
+        "Theme.WindowBackgroundBrush"    = "#FF0A0E0B"
+        "Theme.InputBackgroundBrush"     = "#FF0F1612"
+        "Theme.TitleBackgroundBrush"     = "#FF0F1713"
+        "Theme.PanelGradientTopColor"    = "#FF141D18"
+        "Theme.PanelGradientBottomColor" = "#FF0E1410"
+        "Theme.BorderStrongBrush"        = "#FF2C4331"
+        "Theme.BorderInputBrush"         = "#FF3B5A3C"
+        "Theme.ButtonPrimaryBrush"       = "#FFB48E3A"
+        "Theme.ButtonPrimaryBorderBrush" = "#FF8C6C26"
+        "Theme.ButtonStartBrush"         = "#FF2FAE4F"
+        "Theme.ButtonStartBorderBrush"   = "#FF1E7A3A"
+        "Theme.ButtonStopBrush"          = "#FF7D2E2E"
+        "Theme.ButtonStopBorderBrush"    = "#FF5A1E1E"
+        "Theme.ButtonSecondaryBrush"     = "#FF1B2B21"
+        "Theme.TitleCloseBackgroundBrush"= "#FF4A2020"
+        "Theme.TitleCloseBorderBrush"    = "#FF6E2C2C"
+        "Theme.TextHeadingBrush"         = "#FFDFC688"
+        "Theme.TextSubtleBrush"          = "#FF8FD485"
+        "Theme.TextDisabledBrush"        = "#FF777777"
+        "Theme.TextWarningBrush"         = "#FFFFB347"
+        "Theme.TextInfoBrush"            = "#FFE6F2FF"
+        "Theme.TextHighlightBrush"       = "#FFFFD24D"
+    }
 }
 
 function Ensure-UrlZipToolInstalled {
