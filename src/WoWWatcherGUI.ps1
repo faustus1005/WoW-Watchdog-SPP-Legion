@@ -197,7 +197,7 @@ function Write-AtomicFile {
     }
 }
 
-$AppVersion = [version]"1.2.6"
+$AppVersion = [version]"1.2.7"
 $RepoOwner  = "FAUSTUS1005"
 $RepoName   = "WoW-Watchdog"
 
@@ -368,9 +368,9 @@ $DefaultConfig = [ordered]@{
     MySQLExe     = ""     # e.g. C:\WoWSrv\Database\bin\mysql.exe
     Authserver   = ""     # e.g. C:\WoWSrv\authserver.exe
     Worldserver  = ""     # e.g. C:\WoWSrv\worldserver.exe
-    MySQLPort       = 3306
-    AuthserverPort  = 3724
-    WorldserverPort = 8085
+    MySQLPort       = 3310
+    AuthserverPort  = 1119
+    WorldserverPort = 8086
     PortCheckTtlSec     = 5
     PortCheckFailTtlSec = 15
     PortWarmupSec       = 180
