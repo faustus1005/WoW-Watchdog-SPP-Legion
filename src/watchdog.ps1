@@ -314,7 +314,11 @@ function Test-RoleHealthy {
 
         [string]$ExpectedPath,
 
-        [int]$Port = 0
+        [int]$Port = 0,
+
+        [int]$CacheTtlSec = 5,
+
+        [switch]$SkipCache
     )
 
     if (-not (Test-ProcessRoleRunning -Role $Role -ExpectedPath $ExpectedPath)) {
@@ -325,7 +329,28 @@ function Test-RoleHealthy {
         return $true
     }
 
-    return (Test-PortOpen -HostName "127.0.0.1" -Port $Port)
+    if (-not $script:PortCheckCache) {
+        $script:PortCheckCache = @{}
+    }
+
+    if (-not $SkipCache) {
+        if ($script:PortCheckCache.ContainsKey($Role)) {
+            $cached = $script:PortCheckCache[$Role]
+            if ($cached -and ($CacheTtlSec -gt 0)) {
+                $age = ((Get-Date) - $cached.Timestamp).TotalSeconds
+                if ($age -lt $CacheTtlSec) {
+                    return [bool]$cached.Result
+                }
+            }
+        }
+    }
+
+    $result = (Test-PortOpen -HostName "127.0.0.1" -Port $Port)
+    $script:PortCheckCache[$Role] = [pscustomobject]@{
+        Timestamp = Get-Date
+        Result    = $result
+    }
+    return $result
 }
 
 # -------------------------------
@@ -559,7 +584,7 @@ function Wait-ForRole {
 
     $start = Get-Date
     while (((Get-Date) - $start).TotalSeconds -lt $TimeoutSec) {
-        if (Test-RoleHealthy -Role $Role -ExpectedPath $ExpectedPath -Port $Port) {
+        if (Test-RoleHealthy -Role $Role -ExpectedPath $ExpectedPath -Port $Port -SkipCache) {
             return $true
         }
         Start-Sleep -Seconds 2

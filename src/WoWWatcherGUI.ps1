@@ -5444,7 +5444,11 @@ function Test-ServiceUp {
     param(
         [Parameter(Mandatory)]
         [ValidateSet("MySQL","Authserver","Worldserver")]
-        [string]$Role
+        [string]$Role,
+
+        [int]$CacheTtlSec = 5,
+
+        [switch]$SkipCache
     )
 
     if (-not (Get-ProcessSafe $Role)) {
@@ -5456,7 +5460,28 @@ function Test-ServiceUp {
         return $true
     }
 
-    return (Test-PortOpen -HostName "127.0.0.1" -Port $port)
+    if (-not $script:PortCheckCache) {
+        $script:PortCheckCache = @{}
+    }
+
+    if (-not $SkipCache) {
+        if ($script:PortCheckCache.ContainsKey($Role)) {
+            $cached = $script:PortCheckCache[$Role]
+            if ($cached -and ($CacheTtlSec -gt 0)) {
+                $age = ((Get-Date) - $cached.Timestamp).TotalSeconds
+                if ($age -lt $CacheTtlSec) {
+                    return [bool]$cached.Result
+                }
+            }
+        }
+    }
+
+    $result = (Test-PortOpen -HostName "127.0.0.1" -Port $port)
+    $script:PortCheckCache[$Role] = [pscustomobject]@{
+        Timestamp = Get-Date
+        Result    = $result
+    }
+    return $result
 }
 
 # -------------------------------------------------
