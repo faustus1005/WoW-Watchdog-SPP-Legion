@@ -7314,6 +7314,24 @@ $BtnLaunchSppManager.Add_Click({
 # -------------------------------------------------
 # Timer – update status + log view
 # -------------------------------------------------
+function Invoke-TimerStep {
+    param(
+        [Parameter(Mandatory)][string]$Name,
+        [Parameter(Mandatory)][scriptblock]$Action,
+        [switch]$SuppressAccessDenied
+    )
+
+    try {
+        & $Action
+    } catch {
+        $ex = $_.Exception
+        if ($SuppressAccessDenied -and $ex -is [System.UnauthorizedAccessException]) {
+            return
+        }
+        Add-GuiLog ("TIMER ERROR ({0}): {1}" -f $Name, $ex.Message)
+    }
+}
+
 Initialize-NtfyBaseline
 
 if ($null -eq $global:UtilTick) { $global:UtilTick = 0 }
@@ -7323,28 +7341,30 @@ $timer.Interval = [TimeSpan]::FromSeconds(1)
 
 $timer.Add_Tick({
     try {
-        Update-ServiceStates
-        Update-WatchdogStatusLabel
-        Update-ServiceStatusLabel
-        Update-WorldUptimeLabel
+        Invoke-TimerStep -Name "Update-ServiceStates" -Action { Update-ServiceStates }
+        Invoke-TimerStep -Name "Update-WatchdogStatusLabel" -Action { Update-WatchdogStatusLabel }
+        Invoke-TimerStep -Name "Update-ServiceStatusLabel" -Action { Update-ServiceStatusLabel }
+        Invoke-TimerStep -Name "Update-WorldUptimeLabel" -Action { Update-WorldUptimeLabel }
 
         # Every 5 seconds: Resource utilization snapshot
         $global:UtilTick++
         if ($global:UtilTick -ge 5) {
             $global:UtilTick = 0
-            Update-ResourceUtilizationUi
+            Invoke-TimerStep -Name "Update-ResourceUtilizationUi" -Action { Update-ResourceUtilizationUi }
         }
 
         # Log view
-        if (Test-Path $LogPath) {
-            $text = Get-Content $LogPath -Raw -ErrorAction SilentlyContinue
-            if ($text -ne $TxtLiveLog.Text) {
-                $TxtLiveLog.Text = $text
-                $TxtLiveLog.ScrollToEnd()
+        Invoke-TimerStep -Name "LogView" -SuppressAccessDenied -Action {
+            if (Test-Path $LogPath) {
+                $text = Get-Content $LogPath -Raw -ErrorAction Stop
+                if ($text -ne $TxtLiveLog.Text) {
+                    $TxtLiveLog.Text = $text
+                    $TxtLiveLog.ScrollToEnd()
+                }
             }
         }
      } catch {
-        Add-GuiLog "TIMER ERROR: $($_.Exception.Message)"
+        Add-GuiLog "TIMER ERROR (Unhandled): $($_.Exception.Message)"
     }
 })
 
