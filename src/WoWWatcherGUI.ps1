@@ -368,6 +368,9 @@ $DefaultConfig = [ordered]@{
     MySQLExe     = ""     # e.g. C:\WoWSrv\Database\bin\mysql.exe
     Authserver   = ""     # e.g. C:\WoWSrv\authserver.exe
     Worldserver  = ""     # e.g. C:\WoWSrv\worldserver.exe
+    MySQLPort       = 3306
+    AuthserverPort  = 3724
+    WorldserverPort = 8085
 
 
     # Worldserver Telnet console (in-GUI remote console)
@@ -5373,6 +5376,50 @@ $ProcessAliases = @{
 # -------------------------------------------------
 # Process helper
 # -------------------------------------------------
+function Test-PortOpen {
+    param(
+        [Parameter(Mandatory)][string]$Host,
+        [Parameter(Mandatory)][int]$Port,
+        [int]$TimeoutMs = 1000
+    )
+
+    if ($Port -le 0) { return $false }
+
+    $client = $null
+    $async = $null
+    try {
+        $client = New-Object System.Net.Sockets.TcpClient
+        $async = $client.BeginConnect($Host, $Port, $null, $null)
+        $wait = $async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)
+        if (-not $wait) {
+            return $false
+        }
+        $client.EndConnect($async) | Out-Null
+        return $true
+    } catch {
+        return $false
+    } finally {
+        if ($client) {
+            try { $client.Close() } catch { }
+            try { $client.Dispose() } catch { }
+        }
+    }
+}
+
+function Get-ServicePort {
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet("MySQL","Authserver","Worldserver")]
+        [string]$Role
+    )
+
+    switch ($Role) {
+        "MySQL" { return [int]$Config.MySQLPort }
+        "Authserver" { return [int]$Config.AuthserverPort }
+        "Worldserver" { return [int]$Config.WorldserverPort }
+    }
+}
+
 function Get-ProcessSafe {
     param(
         [Parameter(Mandatory)]
@@ -5391,6 +5438,25 @@ function Get-ProcessSafe {
     }
 
     return $null
+}
+
+function Test-ServiceUp {
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet("MySQL","Authserver","Worldserver")]
+        [string]$Role
+    )
+
+    if (-not (Get-ProcessSafe $Role)) {
+        return $false
+    }
+
+    $port = Get-ServicePort -Role $Role
+    if ($port -le 0) {
+        return $true
+    }
+
+    return (Test-PortOpen -Host "127.0.0.1" -Port $port)
 }
 
 # -------------------------------------------------
@@ -5506,9 +5572,9 @@ Timestamp: $ts
 # -------------------------------------------------
 function Initialize-NtfyBaseline {
     try {
-        $global:MySqlUp  = [bool](Get-ProcessSafe "MySQL")
-        $global:AuthUp   = [bool](Get-ProcessSafe "Authserver")
-        $global:WorldUp  = [bool](Get-ProcessSafe "Worldserver")
+        $global:MySqlUp  = (Test-ServiceUp -Role "MySQL")
+        $global:AuthUp   = (Test-ServiceUp -Role "Authserver")
+        $global:WorldUp  = (Test-ServiceUp -Role "Worldserver")
 
         $global:NtfyBaselineInitialized = $true
         $global:NtfySuppressUntil = (Get-Date).AddSeconds(2)
@@ -5521,9 +5587,9 @@ function Initialize-NtfyBaseline {
 # Polling: update LEDs + NTFY state changes
 # -------------------------------------------------
 function Update-ServiceStates {
-    $newMySql  = [bool](Get-ProcessSafe "MySQL")
-    $newAuth   = [bool](Get-ProcessSafe "Authserver")
-    $newWorld  = [bool](Get-ProcessSafe "Worldserver")
+    $newMySql  = (Test-ServiceUp -Role "MySQL")
+    $newAuth   = (Test-ServiceUp -Role "Authserver")
+    $newWorld  = (Test-ServiceUp -Role "Worldserver")
 
     if ($newMySql -ne $global:MySqlUp) {
         Send-NTFYAlert -ServiceName "MySQL" -OldState $global:MySqlUp -NewState $newMySql
