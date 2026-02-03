@@ -587,6 +587,9 @@
               <RowDefinition Height="Auto"/> <!-- MySQL EXE -->
               <RowDefinition Height="Auto"/> <!-- Auth -->
               <RowDefinition Height="Auto"/> <!-- World -->
+              <RowDefinition Height="Auto"/> <!-- MySQL Port -->
+              <RowDefinition Height="Auto"/> <!-- Auth Port -->
+              <RowDefinition Height="Auto"/> <!-- World Port -->
             </Grid.RowDefinitions>
             <Grid.ColumnDefinitions>
               <ColumnDefinition Width="Auto"/>
@@ -617,6 +620,18 @@
                      Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
             <Button x:Name="BtnBrowseWorld" Grid.Row="3" Grid.Column="2" Content="Browse" MinWidth="80"
                     Background="{DynamicResource Theme.ButtonSecondaryBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderStrongBrush}" Margin="6,2,0,2"/>
+
+            <TextBlock Grid.Row="4" Grid.Column="0" Text="MySQL Port:" VerticalAlignment="Center" Foreground="White" Margin="0,0,4,0"/>
+            <TextBox x:Name="TxtMySQLPort" Grid.Row="4" Grid.Column="1" Grid.ColumnSpan="2" Margin="4,2"
+                     Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
+
+            <TextBlock Grid.Row="5" Grid.Column="0" Text="Authserver Port:" VerticalAlignment="Center" Foreground="White" Margin="0,0,4,0"/>
+            <TextBox x:Name="TxtAuthPort" Grid.Row="5" Grid.Column="1" Grid.ColumnSpan="2" Margin="4,2"
+                     Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
+
+            <TextBlock Grid.Row="6" Grid.Column="0" Text="Worldserver Port:" VerticalAlignment="Center" Foreground="White" Margin="0,0,4,0"/>
+            <TextBox x:Name="TxtWorldPort" Grid.Row="6" Grid.Column="1" Grid.ColumnSpan="2" Margin="4,2"
+                     Background="{DynamicResource Theme.InputBackgroundBrush}" Foreground="White" BorderBrush="{DynamicResource Theme.BorderInputBrush}"/>
           </Grid>
         </GroupBox>
 

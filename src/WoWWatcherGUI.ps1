@@ -1620,6 +1620,9 @@ $TxtMySQLExe.Text = $Config.MySQLExe
 
 $TxtAuth            = $Window.FindName("TxtAuth")
 $TxtWorld           = $Window.FindName("TxtWorld")
+$TxtMySQLPort       = $Window.FindName("TxtMySQLPort")
+$TxtAuthPort        = $Window.FindName("TxtAuthPort")
+$TxtWorldPort       = $Window.FindName("TxtWorldPort")
 
 $BtnBrowseMySQL     = $Window.FindName("BtnBrowseMySQL")
 $BtnBrowseAuth      = $Window.FindName("BtnBrowseAuth")
@@ -4613,6 +4616,14 @@ $TxtAuth.Text   = $Config.Authserver
 $TxtWorld.Text  = $Config.Worldserver
 $TxtRepackRoot.Text  = $Config.RepackRoot
 
+if (-not $Config.MySQLPort) { $Config.MySQLPort = 3306 }
+if (-not $Config.AuthserverPort) { $Config.AuthserverPort = 3724 }
+if (-not $Config.WorldserverPort) { $Config.WorldserverPort = 8085 }
+
+try { $TxtMySQLPort.Text = [string]$Config.MySQLPort } catch { }
+try { $TxtAuthPort.Text = [string]$Config.AuthserverPort } catch { }
+try { $TxtWorldPort.Text = [string]$Config.WorldserverPort } catch { }
+
 
 # Worldserver Telnet defaults
 if ([string]::IsNullOrWhiteSpace([string]$Config.WorldTelnetHost)) { $Config.WorldTelnetHost = "127.0.0.1" }
@@ -6014,6 +6025,18 @@ if ([string]::IsNullOrWhiteSpace($dbUserName)) { $dbUserName = "root" }
 $dbNameChars = [string]$TxtDbNameChar.Text
 if ([string]::IsNullOrWhiteSpace($dbNameChars)) { $dbNameChars = "legion_characters" }
 
+    $mySqlPort = 3306
+    try { $mySqlPort = [int]([string]$TxtMySQLPort.Text) } catch { $mySqlPort = 3306 }
+    if (-not $mySqlPort) { $mySqlPort = 3306 }
+
+    $authPort = 3724
+    try { $authPort = [int]([string]$TxtAuthPort.Text) } catch { $authPort = 3724 }
+    if (-not $authPort) { $authPort = 3724 }
+
+    $worldPort = 8085
+    try { $worldPort = [int]([string]$TxtWorldPort.Text) } catch { $worldPort = 8085 }
+    if (-not $worldPort) { $worldPort = 8085 }
+
     
     # Worldserver Telnet fields from UI
     $telHost = ($TxtWorldTelnetHost.Text + "").Trim()
@@ -6045,6 +6068,9 @@ $cfg = [pscustomobject]@{
         MySQLExe    = $TxtMySQLExe.Text
         Authserver  = $TxtAuth.Text
         Worldserver = $TxtWorld.Text
+        MySQLPort       = $mySqlPort
+        AuthserverPort  = $authPort
+        WorldserverPort = $worldPort
         WorldTelnetHost = $telHost
         WorldTelnetPort = $telPort
         WorldTelnetUser = $telUser
