@@ -371,6 +371,8 @@ $DefaultConfig = [ordered]@{
     MySQLPort       = 3306
     AuthserverPort  = 3724
     WorldserverPort = 8085
+    PortCheckTtlSec     = 5
+    PortCheckFailTtlSec = 15
 
 
     # Worldserver Telnet console (in-GUI remote console)
@@ -5448,6 +5450,8 @@ function Test-ServiceUp {
 
         [int]$CacheTtlSec = 5,
 
+        [int]$NegativeCacheTtlSec = 15,
+
         [switch]$SkipCache
     )
 
@@ -5467,10 +5471,13 @@ function Test-ServiceUp {
     if (-not $SkipCache) {
         if ($script:PortCheckCache.ContainsKey($Role)) {
             $cached = $script:PortCheckCache[$Role]
-            if ($cached -and ($CacheTtlSec -gt 0)) {
+            if ($cached) {
                 $age = ((Get-Date) - $cached.Timestamp).TotalSeconds
-                if ($age -lt $CacheTtlSec) {
-                    return [bool]$cached.Result
+                if ($cached.Result -and ($CacheTtlSec -gt 0) -and ($age -lt $CacheTtlSec)) {
+                    return $true
+                }
+                if (-not $cached.Result -and ($NegativeCacheTtlSec -gt 0) -and ($age -lt $NegativeCacheTtlSec)) {
+                    return $false
                 }
             }
         }
@@ -5597,9 +5604,12 @@ Timestamp: $ts
 # -------------------------------------------------
 function Initialize-NtfyBaseline {
     try {
-        $global:MySqlUp  = (Test-ServiceUp -Role "MySQL")
-        $global:AuthUp   = (Test-ServiceUp -Role "Authserver")
-        $global:WorldUp  = (Test-ServiceUp -Role "Worldserver")
+        $cacheTtl = [int]$Config.PortCheckTtlSec
+        $failTtl = [int]$Config.PortCheckFailTtlSec
+
+        $global:MySqlUp  = (Test-ServiceUp -Role "MySQL" -CacheTtlSec $cacheTtl -NegativeCacheTtlSec $failTtl)
+        $global:AuthUp   = (Test-ServiceUp -Role "Authserver" -CacheTtlSec $cacheTtl -NegativeCacheTtlSec $failTtl)
+        $global:WorldUp  = (Test-ServiceUp -Role "Worldserver" -CacheTtlSec $cacheTtl -NegativeCacheTtlSec $failTtl)
 
         $global:NtfyBaselineInitialized = $true
         $global:NtfySuppressUntil = (Get-Date).AddSeconds(2)
@@ -5612,9 +5622,12 @@ function Initialize-NtfyBaseline {
 # Polling: update LEDs + NTFY state changes
 # -------------------------------------------------
 function Update-ServiceStates {
-    $newMySql  = (Test-ServiceUp -Role "MySQL")
-    $newAuth   = (Test-ServiceUp -Role "Authserver")
-    $newWorld  = (Test-ServiceUp -Role "Worldserver")
+    $cacheTtl = [int]$Config.PortCheckTtlSec
+    $failTtl = [int]$Config.PortCheckFailTtlSec
+
+    $newMySql  = (Test-ServiceUp -Role "MySQL" -CacheTtlSec $cacheTtl -NegativeCacheTtlSec $failTtl)
+    $newAuth   = (Test-ServiceUp -Role "Authserver" -CacheTtlSec $cacheTtl -NegativeCacheTtlSec $failTtl)
+    $newWorld  = (Test-ServiceUp -Role "Worldserver" -CacheTtlSec $cacheTtl -NegativeCacheTtlSec $failTtl)
 
     if ($newMySql -ne $global:MySqlUp) {
         Send-NTFYAlert -ServiceName "MySQL" -OldState $global:MySqlUp -NewState $newMySql

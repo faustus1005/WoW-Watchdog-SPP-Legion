@@ -318,6 +318,8 @@ function Test-RoleHealthy {
 
         [int]$CacheTtlSec = 5,
 
+        [int]$NegativeCacheTtlSec = 15,
+
         [switch]$SkipCache
     )
 
@@ -336,10 +338,13 @@ function Test-RoleHealthy {
     if (-not $SkipCache) {
         if ($script:PortCheckCache.ContainsKey($Role)) {
             $cached = $script:PortCheckCache[$Role]
-            if ($cached -and ($CacheTtlSec -gt 0)) {
+            if ($cached) {
                 $age = ((Get-Date) - $cached.Timestamp).TotalSeconds
-                if ($age -lt $CacheTtlSec) {
-                    return [bool]$cached.Result
+                if ($cached.Result -and ($CacheTtlSec -gt 0) -and ($age -lt $CacheTtlSec)) {
+                    return $true
+                }
+                if (-not $cached.Result -and ($NegativeCacheTtlSec -gt 0) -and ($age -lt $NegativeCacheTtlSec)) {
+                    return $false
                 }
             }
         }
@@ -377,6 +382,8 @@ $DefaultConfig = [ordered]@{
     MySQLPort       = 3306
     AuthserverPort  = 3724
     WorldserverPort = 8085
+    PortCheckTtlSec     = 5
+    PortCheckFailTtlSec = 15
     NTFY = [ordered]@{
         Server           = ""
         Topic            = ""
@@ -630,7 +637,11 @@ function Ensure-Role {
         [Parameter(Mandatory)]
         [string]$Path,
 
-        [int]$Port = 0
+        [int]$Port = 0,
+
+        [int]$CacheTtlSec = 5,
+
+        [int]$NegativeCacheTtlSec = 15
     )
 
     # Manual hold (GUI-requested stop) — do not restart.
@@ -638,7 +649,7 @@ function Ensure-Role {
         return
     }
 
-    if (Test-RoleHealthy -Role $Role -ExpectedPath $Path -Port $Port) { return }
+    if (Test-RoleHealthy -Role $Role -ExpectedPath $Path -Port $Port -CacheTtlSec $CacheTtlSec -NegativeCacheTtlSec $NegativeCacheTtlSec) { return }
 
     # Restart cooldown.
     $delta = ((Get-Date) - $LastRestart[$Role]).TotalSeconds
@@ -807,22 +818,25 @@ while ($true) {
         Process-Commands -Cfg $cfg
 
         # Ensure roles (dependency order is enforced below).
-        Ensure-Role -Role "MySQL" -Path ([string]$cfg.MySQL) -Port (Get-RolePort -Cfg $cfg -Role "MySQL")
+        $portCheckTtlSec = [int]$cfg.PortCheckTtlSec
+        $portCheckFailTtlSec = [int]$cfg.PortCheckFailTtlSec
 
-if (Test-RoleHealthy -Role "MySQL" -ExpectedPath ([string]$cfg.MySQL) -Port (Get-RolePort -Cfg $cfg -Role "MySQL")) {
-    Ensure-Role -Role "Authserver" -Path ([string]$cfg.Authserver) -Port (Get-RolePort -Cfg $cfg -Role "Authserver")
+        Ensure-Role -Role "MySQL" -Path ([string]$cfg.MySQL) -Port (Get-RolePort -Cfg $cfg -Role "MySQL") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec
+
+if (Test-RoleHealthy -Role "MySQL" -ExpectedPath ([string]$cfg.MySQL) -Port (Get-RolePort -Cfg $cfg -Role "MySQL") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec) {
+    Ensure-Role -Role "Authserver" -Path ([string]$cfg.Authserver) -Port (Get-RolePort -Cfg $cfg -Role "Authserver") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec
 }
 
-if (Test-RoleHealthy -Role "Authserver" -ExpectedPath ([string]$cfg.Authserver) -Port (Get-RolePort -Cfg $cfg -Role "Authserver")) {
-    Ensure-Role -Role "Worldserver" -Path ([string]$cfg.Worldserver) -Port (Get-RolePort -Cfg $cfg -Role "Worldserver")
+if (Test-RoleHealthy -Role "Authserver" -ExpectedPath ([string]$cfg.Authserver) -Port (Get-RolePort -Cfg $cfg -Role "Authserver") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec) {
+    Ensure-Role -Role "Worldserver" -Path ([string]$cfg.Worldserver) -Port (Get-RolePort -Cfg $cfg -Role "Worldserver") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec
 }
 
 
         # Heartbeat + lightweight telemetry for GUI.
             $extra = @{
-                mysqlRunning = (Test-RoleHealthy -Role "MySQL" -ExpectedPath ([string]$cfg.MySQL) -Port (Get-RolePort -Cfg $cfg -Role "MySQL"))
-                authRunning  = (Test-RoleHealthy -Role "Authserver" -ExpectedPath ([string]$cfg.Authserver) -Port (Get-RolePort -Cfg $cfg -Role "Authserver"))
-                worldRunning = (Test-RoleHealthy -Role "Worldserver" -ExpectedPath ([string]$cfg.Worldserver) -Port (Get-RolePort -Cfg $cfg -Role "Worldserver"))
+                mysqlRunning = (Test-RoleHealthy -Role "MySQL" -ExpectedPath ([string]$cfg.MySQL) -Port (Get-RolePort -Cfg $cfg -Role "MySQL") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec)
+                authRunning  = (Test-RoleHealthy -Role "Authserver" -ExpectedPath ([string]$cfg.Authserver) -Port (Get-RolePort -Cfg $cfg -Role "Authserver") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec)
+                worldRunning = (Test-RoleHealthy -Role "Worldserver" -ExpectedPath ([string]$cfg.Worldserver) -Port (Get-RolePort -Cfg $cfg -Role "Worldserver") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec)
                 mysqlHeld    = (Is-RoleHeld -Role "MySQL")
                 authHeld     = (Is-RoleHeld -Role "Authserver")
                 worldHeld    = (Is-RoleHeld -Role "Worldserver")
