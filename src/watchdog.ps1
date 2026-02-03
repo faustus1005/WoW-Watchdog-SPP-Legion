@@ -220,7 +220,7 @@ $ProcessAliases = @{
 
 function Test-PortOpen {
     param(
-        [Parameter(Mandatory)][string]$Host,
+        [Parameter(Mandatory)][string]$HostName,
         [Parameter(Mandatory)][int]$Port,
         [int]$TimeoutMs = 1000
     )
@@ -231,7 +231,7 @@ function Test-PortOpen {
     $async = $null
     try {
         $client = New-Object System.Net.Sockets.TcpClient
-        $async = $client.BeginConnect($Host, $Port, $null, $null)
+        $async = $client.BeginConnect($HostName, $Port, $null, $null)
         $wait = $async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)
         if (-not $wait) {
             return $false
@@ -325,7 +325,7 @@ function Test-RoleHealthy {
         return $true
     }
 
-    return (Test-PortOpen -Host "127.0.0.1" -Port $Port)
+    return (Test-PortOpen -HostName "127.0.0.1" -Port $Port)
 }
 
 # -------------------------------
