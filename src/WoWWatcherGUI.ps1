@@ -368,6 +368,12 @@ $DefaultConfig = [ordered]@{
     MySQLExe     = ""     # e.g. C:\WoWSrv\Database\bin\mysql.exe
     Authserver   = ""     # e.g. C:\WoWSrv\authserver.exe
     Worldserver  = ""     # e.g. C:\WoWSrv\worldserver.exe
+    MySQLPort       = 3306
+    AuthserverPort  = 3724
+    WorldserverPort = 8085
+    PortCheckTtlSec     = 5
+    PortCheckFailTtlSec = 15
+    PortWarmupSec       = 180
 
 
     # Worldserver Telnet console (in-GUI remote console)
@@ -1615,6 +1621,9 @@ $TxtMySQLExe.Text = $Config.MySQLExe
 
 $TxtAuth            = $Window.FindName("TxtAuth")
 $TxtWorld           = $Window.FindName("TxtWorld")
+$TxtMySQLPort       = $Window.FindName("TxtMySQLPort")
+$TxtAuthPort        = $Window.FindName("TxtAuthPort")
+$TxtWorldPort       = $Window.FindName("TxtWorldPort")
 
 $BtnBrowseMySQL     = $Window.FindName("BtnBrowseMySQL")
 $BtnBrowseAuth      = $Window.FindName("BtnBrowseAuth")
@@ -4608,6 +4617,14 @@ $TxtAuth.Text   = $Config.Authserver
 $TxtWorld.Text  = $Config.Worldserver
 $TxtRepackRoot.Text  = $Config.RepackRoot
 
+if (-not $Config.MySQLPort) { $Config.MySQLPort = 3306 }
+if (-not $Config.AuthserverPort) { $Config.AuthserverPort = 3724 }
+if (-not $Config.WorldserverPort) { $Config.WorldserverPort = 8085 }
+
+try { $TxtMySQLPort.Text = [string]$Config.MySQLPort } catch { }
+try { $TxtAuthPort.Text = [string]$Config.AuthserverPort } catch { }
+try { $TxtWorldPort.Text = [string]$Config.WorldserverPort } catch { }
+
 
 # Worldserver Telnet defaults
 if ([string]::IsNullOrWhiteSpace([string]$Config.WorldTelnetHost)) { $Config.WorldTelnetHost = "127.0.0.1" }
@@ -5373,6 +5390,50 @@ $ProcessAliases = @{
 # -------------------------------------------------
 # Process helper
 # -------------------------------------------------
+function Test-PortOpen {
+    param(
+        [Parameter(Mandatory)][string]$HostName,
+        [Parameter(Mandatory)][int]$Port,
+        [int]$TimeoutMs = 1000
+    )
+
+    if ($Port -le 0) { return $false }
+
+    $client = $null
+    $async = $null
+    try {
+        $client = New-Object System.Net.Sockets.TcpClient
+        $async = $client.BeginConnect($HostName, $Port, $null, $null)
+        $wait = $async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)
+        if (-not $wait) {
+            return $false
+        }
+        $client.EndConnect($async) | Out-Null
+        return $true
+    } catch {
+        return $false
+    } finally {
+        if ($client) {
+            try { $client.Close() } catch { }
+            try { $client.Dispose() } catch { }
+        }
+    }
+}
+
+function Get-ServicePort {
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet("MySQL","Authserver","Worldserver")]
+        [string]$Role
+    )
+
+    switch ($Role) {
+        "MySQL" { return [int]$Config.MySQLPort }
+        "Authserver" { return [int]$Config.AuthserverPort }
+        "Worldserver" { return [int]$Config.WorldserverPort }
+    }
+}
+
 function Get-ProcessSafe {
     param(
         [Parameter(Mandatory)]
@@ -5391,6 +5452,55 @@ function Get-ProcessSafe {
     }
 
     return $null
+}
+
+function Test-ServiceUp {
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet("MySQL","Authserver","Worldserver")]
+        [string]$Role,
+
+        [int]$CacheTtlSec = 5,
+
+        [int]$NegativeCacheTtlSec = 15,
+
+        [switch]$SkipCache
+    )
+
+    if (-not (Get-ProcessSafe $Role)) {
+        return $false
+    }
+
+    $port = Get-ServicePort -Role $Role
+    if ($port -le 0) {
+        return $true
+    }
+
+    if (-not $script:PortCheckCache) {
+        $script:PortCheckCache = @{}
+    }
+
+    if (-not $SkipCache) {
+        if ($script:PortCheckCache.ContainsKey($Role)) {
+            $cached = $script:PortCheckCache[$Role]
+            if ($cached) {
+                $age = ((Get-Date) - $cached.Timestamp).TotalSeconds
+                if ($cached.Result -and ($CacheTtlSec -gt 0) -and ($age -lt $CacheTtlSec)) {
+                    return $true
+                }
+                if (-not $cached.Result -and ($NegativeCacheTtlSec -gt 0) -and ($age -lt $NegativeCacheTtlSec)) {
+                    return $false
+                }
+            }
+        }
+    }
+
+    $result = (Test-PortOpen -HostName "127.0.0.1" -Port $port)
+    $script:PortCheckCache[$Role] = [pscustomobject]@{
+        Timestamp = Get-Date
+        Result    = $result
+    }
+    return $result
 }
 
 # -------------------------------------------------
@@ -5506,9 +5616,12 @@ Timestamp: $ts
 # -------------------------------------------------
 function Initialize-NtfyBaseline {
     try {
-        $global:MySqlUp  = [bool](Get-ProcessSafe "MySQL")
-        $global:AuthUp   = [bool](Get-ProcessSafe "Authserver")
-        $global:WorldUp  = [bool](Get-ProcessSafe "Worldserver")
+        $cacheTtl = [int]$Config.PortCheckTtlSec
+        $failTtl = [int]$Config.PortCheckFailTtlSec
+
+        $global:MySqlUp  = (Test-ServiceUp -Role "MySQL" -CacheTtlSec $cacheTtl -NegativeCacheTtlSec $failTtl)
+        $global:AuthUp   = (Test-ServiceUp -Role "Authserver" -CacheTtlSec $cacheTtl -NegativeCacheTtlSec $failTtl)
+        $global:WorldUp  = (Test-ServiceUp -Role "Worldserver" -CacheTtlSec $cacheTtl -NegativeCacheTtlSec $failTtl)
 
         $global:NtfyBaselineInitialized = $true
         $global:NtfySuppressUntil = (Get-Date).AddSeconds(2)
@@ -5521,9 +5634,12 @@ function Initialize-NtfyBaseline {
 # Polling: update LEDs + NTFY state changes
 # -------------------------------------------------
 function Update-ServiceStates {
-    $newMySql  = [bool](Get-ProcessSafe "MySQL")
-    $newAuth   = [bool](Get-ProcessSafe "Authserver")
-    $newWorld  = [bool](Get-ProcessSafe "Worldserver")
+    $cacheTtl = [int]$Config.PortCheckTtlSec
+    $failTtl = [int]$Config.PortCheckFailTtlSec
+
+    $newMySql  = (Test-ServiceUp -Role "MySQL" -CacheTtlSec $cacheTtl -NegativeCacheTtlSec $failTtl)
+    $newAuth   = (Test-ServiceUp -Role "Authserver" -CacheTtlSec $cacheTtl -NegativeCacheTtlSec $failTtl)
+    $newWorld  = (Test-ServiceUp -Role "Worldserver" -CacheTtlSec $cacheTtl -NegativeCacheTtlSec $failTtl)
 
     if ($newMySql -ne $global:MySqlUp) {
         Send-NTFYAlert -ServiceName "MySQL" -OldState $global:MySqlUp -NewState $newMySql
@@ -5910,6 +6026,21 @@ if ([string]::IsNullOrWhiteSpace($dbUserName)) { $dbUserName = "root" }
 $dbNameChars = [string]$TxtDbNameChar.Text
 if ([string]::IsNullOrWhiteSpace($dbNameChars)) { $dbNameChars = "legion_characters" }
 
+    $mySqlPort = 3306
+    try { $mySqlPort = [int]([string]$TxtMySQLPort.Text) } catch { $mySqlPort = 3306 }
+    if (-not $mySqlPort) { $mySqlPort = 3306 }
+
+    $authPort = 3724
+    try { $authPort = [int]([string]$TxtAuthPort.Text) } catch { $authPort = 3724 }
+    if (-not $authPort) { $authPort = 3724 }
+
+    $worldPort = 8085
+    try { $worldPort = [int]([string]$TxtWorldPort.Text) } catch { $worldPort = 8085 }
+    if (-not $worldPort) { $worldPort = 8085 }
+
+    $portWarmupSec = [int]$Config.PortWarmupSec
+    if (-not $portWarmupSec) { $portWarmupSec = 180 }
+
     
     # Worldserver Telnet fields from UI
     $telHost = ($TxtWorldTelnetHost.Text + "").Trim()
@@ -5941,6 +6072,10 @@ $cfg = [pscustomobject]@{
         MySQLExe    = $TxtMySQLExe.Text
         Authserver  = $TxtAuth.Text
         Worldserver = $TxtWorld.Text
+        MySQLPort       = $mySqlPort
+        AuthserverPort  = $authPort
+        WorldserverPort = $worldPort
+        PortWarmupSec   = $portWarmupSec
         WorldTelnetHost = $telHost
         WorldTelnetPort = $telPort
         WorldTelnetUser = $telUser

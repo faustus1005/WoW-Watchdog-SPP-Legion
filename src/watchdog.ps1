@@ -218,6 +218,49 @@ $ProcessAliases = @{
     Worldserver= @("worldserver")
 }
 
+function Test-PortOpen {
+    param(
+        [Parameter(Mandatory)][string]$HostName,
+        [Parameter(Mandatory)][int]$Port,
+        [int]$TimeoutMs = 1000
+    )
+
+    if ($Port -le 0) { return $false }
+
+    $client = $null
+    $async = $null
+    try {
+        $client = New-Object System.Net.Sockets.TcpClient
+        $async = $client.BeginConnect($HostName, $Port, $null, $null)
+        $wait = $async.AsyncWaitHandle.WaitOne($TimeoutMs, $false)
+        if (-not $wait) {
+            return $false
+        }
+        $client.EndConnect($async) | Out-Null
+        return $true
+    } catch {
+        return $false
+    } finally {
+        if ($client) {
+            try { $client.Close() } catch { }
+            try { $client.Dispose() } catch { }
+        }
+    }
+}
+
+function Get-RolePort {
+    param(
+        [Parameter(Mandatory)]$Cfg,
+        [Parameter(Mandatory)][ValidateSet("MySQL","Authserver","Worldserver")][string]$Role
+    )
+
+    switch ($Role) {
+        "MySQL" { return [int]$Cfg.MySQLPort }
+        "Authserver" { return [int]$Cfg.AuthserverPort }
+        "Worldserver" { return [int]$Cfg.WorldserverPort }
+    }
+}
+
 function Test-ProcessRoleRunning {
     param(
         [Parameter(Mandatory)]
@@ -263,6 +306,58 @@ function Test-ProcessRoleRunning {
     return $false
 }
 
+function Test-RoleHealthy {
+    param(
+        [Parameter(Mandatory)]
+        [ValidateSet("MySQL","Authserver","Worldserver")]
+        [string]$Role,
+
+        [string]$ExpectedPath,
+
+        [int]$Port = 0,
+
+        [int]$CacheTtlSec = 5,
+
+        [int]$NegativeCacheTtlSec = 15,
+
+        [switch]$SkipCache
+    )
+
+    if (-not (Test-ProcessRoleRunning -Role $Role -ExpectedPath $ExpectedPath)) {
+        return $false
+    }
+
+    if ($Port -le 0) {
+        return $true
+    }
+
+    if (-not $script:PortCheckCache) {
+        $script:PortCheckCache = @{}
+    }
+
+    if (-not $SkipCache) {
+        if ($script:PortCheckCache.ContainsKey($Role)) {
+            $cached = $script:PortCheckCache[$Role]
+            if ($cached) {
+                $age = ((Get-Date) - $cached.Timestamp).TotalSeconds
+                if ($cached.Result -and ($CacheTtlSec -gt 0) -and ($age -lt $CacheTtlSec)) {
+                    return $true
+                }
+                if (-not $cached.Result -and ($NegativeCacheTtlSec -gt 0) -and ($age -lt $NegativeCacheTtlSec)) {
+                    return $false
+                }
+            }
+        }
+    }
+
+    $result = (Test-PortOpen -HostName "127.0.0.1" -Port $Port)
+    $script:PortCheckCache[$Role] = [pscustomobject]@{
+        Timestamp = Get-Date
+        Result    = $result
+    }
+    return $result
+}
+
 # -------------------------------
 # Restart tracking
 # -------------------------------
@@ -284,6 +379,12 @@ $DefaultConfig = [ordered]@{
     MySQL       = ""
     Authserver  = ""
     Worldserver = ""
+    MySQLPort       = 3306
+    AuthserverPort  = 3724
+    WorldserverPort = 8085
+    PortCheckTtlSec     = 5
+    PortCheckFailTtlSec = 15
+    PortWarmupSec       = 180
     NTFY = [ordered]@{
         Server           = ""
         Topic            = ""
@@ -484,12 +585,14 @@ function Wait-ForRole {
 
         [string]$ExpectedPath,
 
+        [int]$Port = 0,
+
         [int]$TimeoutSec = 120
     )
 
     $start = Get-Date
     while (((Get-Date) - $start).TotalSeconds -lt $TimeoutSec) {
-        if (Test-ProcessRoleRunning -Role $Role -ExpectedPath $ExpectedPath) {
+        if (Test-RoleHealthy -Role $Role -ExpectedPath $ExpectedPath -Port $Port -SkipCache) {
             return $true
         }
         Start-Sleep -Seconds 2
@@ -533,7 +636,15 @@ function Ensure-Role {
         [string]$Role,
 
         [Parameter(Mandatory)]
-        [string]$Path
+        [string]$Path,
+
+        [int]$Port = 0,
+
+        [int]$CacheTtlSec = 5,
+
+        [int]$NegativeCacheTtlSec = 15,
+
+        [int]$PortWarmupSec = 180
     )
 
     # Manual hold (GUI-requested stop) — do not restart.
@@ -541,7 +652,29 @@ function Ensure-Role {
         return
     }
 
-    if (Test-ProcessRoleRunning -Role $Role -ExpectedPath $Path) { return }
+    $processRunning = Test-ProcessRoleRunning -Role $Role -ExpectedPath $Path
+    if ($processRunning) {
+        if ($Port -le 0) { return }
+
+        $portReady = Test-RoleHealthy -Role $Role -ExpectedPath $Path -Port $Port -CacheTtlSec $CacheTtlSec -NegativeCacheTtlSec $NegativeCacheTtlSec
+        if ($portReady) {
+            if ($script:PortWarmupStart) { $script:PortWarmupStart.Remove($Role) | Out-Null }
+            return
+        }
+
+        if ($PortWarmupSec -gt 0) {
+            if (-not $script:PortWarmupStart) { $script:PortWarmupStart = @{} }
+            if (-not $script:PortWarmupStart.ContainsKey($Role)) {
+                $script:PortWarmupStart[$Role] = Get-Date
+            }
+            $age = ((Get-Date) - $script:PortWarmupStart[$Role]).TotalSeconds
+            if ($age -lt $PortWarmupSec) {
+                return
+            }
+        }
+    } else {
+        if ($script:PortWarmupStart) { $script:PortWarmupStart.Remove($Role) | Out-Null }
+    }
 
     # Restart cooldown.
     $delta = ((Get-Date) - $LastRestart[$Role]).TotalSeconds
@@ -604,7 +737,7 @@ function Process-Commands {
     if (Try-ConsumeCommandFile -Path $CommandFiles.StartAuthserver) {
         Log "Command processed: command.start.auth"
 
-        if (Wait-ForRole -Role "MySQL" -ExpectedPath ([string]$Cfg.MySQL)) {
+        if (Wait-ForRole -Role "MySQL" -ExpectedPath ([string]$Cfg.MySQL) -Port (Get-RolePort -Cfg $Cfg -Role "MySQL")) {
             Start-Target -Role "Authserver" -Path $Cfg.Authserver
         } else {
             Log "Authserver start blocked: MySQL not ready."
@@ -614,7 +747,7 @@ function Process-Commands {
      if (Try-ConsumeCommandFile -Path $CommandFiles.StartWorld) {
         Log "Command processed: command.start.world"
 
-        if (Wait-ForRole -Role "Authserver" -ExpectedPath ([string]$Cfg.Authserver)) {
+        if (Wait-ForRole -Role "Authserver" -ExpectedPath ([string]$Cfg.Authserver) -Port (Get-RolePort -Cfg $Cfg -Role "Authserver")) {
             Start-Target -Role "Worldserver" -Path $Cfg.Worldserver
         } else {
             Log "Worldserver start blocked: Authserver not ready."
@@ -710,22 +843,26 @@ while ($true) {
         Process-Commands -Cfg $cfg
 
         # Ensure roles (dependency order is enforced below).
-        Ensure-Role -Role "MySQL" -Path ([string]$cfg.MySQL)
+        $portCheckTtlSec = [int]$cfg.PortCheckTtlSec
+        $portCheckFailTtlSec = [int]$cfg.PortCheckFailTtlSec
+        $portWarmupSec = [int]$cfg.PortWarmupSec
 
-if (Test-ProcessRoleRunning -Role "MySQL" -ExpectedPath ([string]$cfg.MySQL)) {
-    Ensure-Role -Role "Authserver" -Path ([string]$cfg.Authserver)
+        Ensure-Role -Role "MySQL" -Path ([string]$cfg.MySQL) -Port (Get-RolePort -Cfg $cfg -Role "MySQL") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec -PortWarmupSec $portWarmupSec
+
+if (Test-RoleHealthy -Role "MySQL" -ExpectedPath ([string]$cfg.MySQL) -Port (Get-RolePort -Cfg $cfg -Role "MySQL") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec) {
+    Ensure-Role -Role "Authserver" -Path ([string]$cfg.Authserver) -Port (Get-RolePort -Cfg $cfg -Role "Authserver") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec -PortWarmupSec $portWarmupSec
 }
 
-if (Test-ProcessRoleRunning -Role "Authserver" -ExpectedPath ([string]$cfg.Authserver)) {
-    Ensure-Role -Role "Worldserver" -Path ([string]$cfg.Worldserver)
+if (Test-RoleHealthy -Role "Authserver" -ExpectedPath ([string]$cfg.Authserver) -Port (Get-RolePort -Cfg $cfg -Role "Authserver") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec) {
+    Ensure-Role -Role "Worldserver" -Path ([string]$cfg.Worldserver) -Port (Get-RolePort -Cfg $cfg -Role "Worldserver") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec -PortWarmupSec $portWarmupSec
 }
 
 
         # Heartbeat + lightweight telemetry for GUI.
             $extra = @{
-                mysqlRunning = (Test-ProcessRoleRunning -Role "MySQL" -ExpectedPath ([string]$cfg.MySQL))
-                authRunning  = (Test-ProcessRoleRunning -Role "Authserver" -ExpectedPath ([string]$cfg.Authserver))
-                worldRunning = (Test-ProcessRoleRunning -Role "Worldserver" -ExpectedPath ([string]$cfg.Worldserver))
+                mysqlRunning = (Test-RoleHealthy -Role "MySQL" -ExpectedPath ([string]$cfg.MySQL) -Port (Get-RolePort -Cfg $cfg -Role "MySQL") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec)
+                authRunning  = (Test-RoleHealthy -Role "Authserver" -ExpectedPath ([string]$cfg.Authserver) -Port (Get-RolePort -Cfg $cfg -Role "Authserver") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec)
+                worldRunning = (Test-RoleHealthy -Role "Worldserver" -ExpectedPath ([string]$cfg.Worldserver) -Port (Get-RolePort -Cfg $cfg -Role "Worldserver") -CacheTtlSec $portCheckTtlSec -NegativeCacheTtlSec $portCheckFailTtlSec)
                 mysqlHeld    = (Is-RoleHeld -Role "MySQL")
                 authHeld     = (Is-RoleHeld -Role "Authserver")
                 worldHeld    = (Is-RoleHeld -Role "Worldserver")
