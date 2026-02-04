@@ -335,6 +335,8 @@ $HeartbeatFile  = Join-Path $DataDir "watchdog.heartbeat"
 $StopSignalFile = Join-Path $DataDir "watchdog.stop"
 $LogMaxBytes    = 5242880
 $LogRetainCount = 5
+$RepackLogMaxBytes    = 52428800
+$RepackLogRetainCount = 5
 
 $ServiceName    = "WoWWatchdog"
 
@@ -5225,6 +5227,54 @@ function Rotate-GuiLogIfNeeded {
     } catch { }
 }
 
+function Rotate-LogFileIfNeeded {
+    param(
+        [Parameter(Mandatory)][string]$Path,
+        [int64]$MaxBytes = 52428800,
+        [int]$Keep = 5
+    )
+
+    try {
+        if (-not (Test-Path -LiteralPath $Path)) { return }
+        if ($MaxBytes -le 0 -or $Keep -le 0) { return }
+
+        $len = (Get-Item -LiteralPath $Path).Length
+        if ($len -lt $MaxBytes) { return }
+
+        for ($i = $Keep - 1; $i -ge 1; $i--) {
+            $src = "$Path.$i"
+            $dst = "$Path." + ($i + 1)
+            if (Test-Path -LiteralPath $src) {
+                Move-Item -LiteralPath $src -Destination $dst -Force
+            }
+        }
+
+        Move-Item -LiteralPath $Path -Destination "$Path.1" -Force
+    } catch { }
+}
+
+function Rotate-RepackLogsIfNeeded {
+    param(
+        [int64]$MaxBytes = 52428800,
+        [int]$Keep = 5
+    )
+
+    try {
+        $logsDir = Get-RepackLogsFolder
+        if ([string]::IsNullOrWhiteSpace($logsDir)) { return }
+        if (-not (Test-Path -LiteralPath $logsDir -PathType Container)) { return }
+
+        $files = @()
+        try {
+            $files = Get-ChildItem -LiteralPath $logsDir -File -Filter "*.log" -ErrorAction SilentlyContinue
+        } catch { $files = @() }
+
+        foreach ($f in $files) {
+            try { Rotate-LogFileIfNeeded -Path $f.FullName -MaxBytes $MaxBytes -Keep $Keep } catch { }
+        }
+    } catch { }
+}
+
 function Invoke-WithLogLock {
     param([Parameter(Mandatory)][scriptblock]$Action)
 
@@ -7335,6 +7385,7 @@ function Invoke-TimerStep {
 Initialize-NtfyBaseline
 
 if ($null -eq $global:UtilTick) { $global:UtilTick = 0 }
+if ($null -eq $global:RepackLogRotateTick) { $global:RepackLogRotateTick = 0 }
 
 $timer = New-Object System.Windows.Threading.DispatcherTimer
 $timer.Interval = [TimeSpan]::FromSeconds(1)
@@ -7351,6 +7402,15 @@ $timer.Add_Tick({
         if ($global:UtilTick -ge 5) {
             $global:UtilTick = 0
             Invoke-TimerStep -Name "Update-ResourceUtilizationUi" -Action { Update-ResourceUtilizationUi }
+        }
+
+        # Every 60 seconds: rotate repack log files
+        $global:RepackLogRotateTick++
+        if ($global:RepackLogRotateTick -ge 60) {
+            $global:RepackLogRotateTick = 0
+            Invoke-TimerStep -Name "Rotate-RepackLogsIfNeeded" -Action {
+                Rotate-RepackLogsIfNeeded -MaxBytes $RepackLogMaxBytes -Keep $RepackLogRetainCount
+            } -SuppressAccessDenied
         }
 
         # Log view
