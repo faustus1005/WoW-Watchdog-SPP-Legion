@@ -5249,7 +5249,8 @@ function Rotate-LogFileIfNeeded {
             }
         }
 
-        Move-Item -LiteralPath $Path -Destination "$Path.1" -Force
+        Copy-Item -LiteralPath $Path -Destination "$Path.1" -Force
+        Clear-Content -LiteralPath $Path -Force
     } catch { }
 }
 
