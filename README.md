@@ -1,4 +1,8 @@
-# <p align="center">![WowWatchDog](https://github.com/user-attachments/assets/a48882ba-a573-4765-9ef3-d49404111a5b)
+# WoW-Watchdog
+
+<p align="center">
+  <img src="https://github.com/user-attachments/assets/a48882ba-a573-4765-9ef3-d49404111a5b" alt="WoW Watchdog logo" />
+</p>
 
 <p align="center"> <img src="https://img.shields.io/badge/PowerShell-5.1+-blue?logo=powershell&style=flat-square"/> <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-lightgrey?logo=windows&style=flat-square"/> <img src="https://img.shields.io/badge/Service-NSSM-success?style=flat-square"/> <img src="https://img.shields.io/badge/GUI-WPF-blueviolet?style=flat-square"/> <img src="https://img.shields.io/badge/Notifications-NTFY-orange?style=flat-square"/> <img src="https://img.shields.io/badge/Status-Stable-success?style=flat-square"/> </p>
 
@@ -84,37 +88,17 @@ Need more detail? Check out the dedicated getting started guide: [docs/getting-s
 
 ### Installation
 
-1.  **Download the [Latest Release](https://github.com/faustus1005/WoW-Watchdog/releases/latest)**
-    
-    ```bash
-    
-    Run the installer as you would any for any Windows application. Admin rights required to install the Service.
-    
-    ```
-    
-3.  **Configure the Watchdog Server Paths**
-    
-    ```bash
-    1. Once the install is complete, the service starts automatically. Open the new "Wow Watchdog" icon on your desktop.
-
-    2. Ensure you select your services by clicking the Browse buttons in the top-right corner of the GUI. This lets the
-        watchdog know how to start/monitor your services.
-    
-    ```
-    
-4.  **Optional: Configure NTFY Notifications**
-    
-    ```bash
-    1. Select your expansion from the drop down, or, select custom and fill out the box that appears to the right. This is
-        purely used for notification purposes and does not effect your monitoring.
-
-    2. Fill out the NTFY Server information and change the topic/tags as required for your system.
-
-    3. Select your auth mode if you are using basic auth or token auth. If you are using basic auth, fill in the Username and Password fields.
-       for token auth, copy your token into the Token field.
-    4. Save config with the button at the top. This will ensure your settings are saved for the next re-load.
-        
-    ```
+1. **Download the [Latest Release](https://github.com/faustus1005/WoW-Watchdog/releases/latest).**
+2. **Run the installer.** Admin rights are required to install the Windows service.
+3. **Launch the app** from the new "WoW Watchdog" desktop shortcut. The service starts automatically after installation.
+4. **Configure the watchdog server paths.**
+   1. Use the **Browse** buttons in the top-right of the GUI to point to your MySQL/Auth/Worldserver executables or scripts.
+   2. This lets the watchdog know how to start and monitor your services.
+5. **Optional: Configure NTFY notifications.**
+   1. Select your expansion from the dropdown, or choose **Custom** and fill out the label. This only affects notifications.
+   2. Fill out the NTFY server information and update the topic/tags as required.
+   3. Select your auth mode (Basic or Token). For Basic, enter a username and password; for Token, paste your token.
+   4. Click **Save Config** to persist settings for the next launch.
 
 ##  License
 
@@ -130,5 +114,3 @@ This project is licensed under the [MIT License](LICENSE) - see the LICENSE file
 **⭐ Star this repo if you find it helpful!**
 
 Made by faustus1005
-
-\`\`\`

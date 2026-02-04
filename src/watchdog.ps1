@@ -38,7 +38,7 @@ $StatusFile      = Join-Path $DataDir "watchdog.status.json"    # GUI reads rich
 
 $CommandDir = $DataDir
 
-# Command files are dropped by the GUI to request immediate actions.
+# Command files are dropped by the GUI to request immediate service actions.
 $CommandFiles = @{
     StartMySQL      = Join-Path $CommandDir "command.start.mysql"
     StopMySQL       = Join-Path $CommandDir "command.stop.mysql"
@@ -166,7 +166,7 @@ function Write-Heartbeat {
 
     try {
         $now = Get-Date
-        # Heartbeat file: ISO timestamp only (simple + robust)
+        # Heartbeat file: ISO timestamp only (simple + robust for GUI freshness checks)
         Write-AtomicFile -Path $HeartbeatFile -Content ($now.ToString("o"))
 
         # Optional richer status JSON
