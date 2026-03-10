@@ -4763,8 +4763,17 @@ function Update-ServiceStatusLabel {
         return
     }
 
-    $TxtServiceStatus.Text = $svc.Status.ToString()
-    switch ($svc.Status) {
+    $svcStatus = $null
+    try {
+        $svcStatus = $svc.Status
+    } catch {
+        $TxtServiceStatus.Text = "Access denied"
+        $TxtServiceStatus.Foreground = [System.Windows.Media.Brushes]::Yellow
+        return
+    }
+
+    $TxtServiceStatus.Text = $svcStatus.ToString()
+    switch ($svcStatus) {
         "Running" { $TxtServiceStatus.Foreground = [System.Windows.Media.Brushes]::LimeGreen }
         "Stopped" { $TxtServiceStatus.Foreground = [System.Windows.Media.Brushes]::Red }
         default   { $TxtServiceStatus.Foreground = [System.Windows.Media.Brushes]::Yellow }
@@ -4877,7 +4886,18 @@ function Update-WatchdogStatusLabel {
         return
     }
 
-    if ($svc.Status -ne 'Running') {
+    # Accessing .Status makes a live SCM query that can throw Win32Exception
+    # ("Access is denied") when running without elevated privileges.
+    $svcStatus = $null
+    try {
+        $svcStatus = $svc.Status
+    } catch {
+        $TxtWatchdogStatus.Text = "Unknown (Access denied)"
+        $TxtWatchdogStatus.Foreground = [System.Windows.Media.Brushes]::Yellow
+        return
+    }
+
+    if ($svcStatus -ne 'Running') {
         $TxtWatchdogStatus.Text = "Stopped"
         $TxtWatchdogStatus.Foreground = [System.Windows.Media.Brushes]::Orange
         return
@@ -7375,11 +7395,19 @@ function Invoke-TimerStep {
         & $Action
     } catch {
         $ex = $_.Exception
-        if ($SuppressAccessDenied -and $ex -is [System.UnauthorizedAccessException]) {
+        if ($SuppressAccessDenied -and (Test-AccessDeniedException $ex)) {
             return
         }
         Add-GuiLog ("TIMER ERROR ({0}): {1}" -f $Name, $ex.Message)
     }
+}
+
+function Test-AccessDeniedException {
+    param([System.Exception]$Ex)
+    if ($Ex -is [System.UnauthorizedAccessException]) { return $true }
+    if ($Ex -is [System.ComponentModel.Win32Exception] -and $Ex.NativeErrorCode -eq 5) { return $true }
+    if ($null -ne $Ex.InnerException) { return (Test-AccessDeniedException $Ex.InnerException) }
+    return $false
 }
 
 Initialize-NtfyBaseline
