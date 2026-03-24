@@ -12,3 +12,14 @@ stop_watchdog.txt
 # OS
 Thumbs.db
 .DS_Store
+
+# Android
+android/.gradle/
+android/.idea/
+android/app/build/
+android/build/
+android/local.properties
+android/captures/
+*.apk
+*.aab
+*.hprof
