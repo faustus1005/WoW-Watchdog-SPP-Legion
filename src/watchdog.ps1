@@ -8,7 +8,11 @@ param(
     [int]$HeartbeatEverySec = 1,    # heartbeat update cadence
     [int]$ShutdownDelaySec = 8,  # delay between service stops
     [int64]$LogMaxBytes    = 5242880, # 5 MB
-    [int]$LogRetainCount   = 5
+    [int]$LogRetainCount   = 5,
+    # REST API parameters (Android companion app)
+    [switch]$ApiEnabled,
+    [int]$ApiPort          = 8099,
+    [string]$ApiBind       = "+"   # "+" = all interfaces, "localhost" = local only
 )
 
 $ErrorActionPreference = 'Stop'
@@ -385,6 +389,11 @@ $DefaultConfig = [ordered]@{
     PortCheckTtlSec     = 5
     PortCheckFailTtlSec = 15
     PortWarmupSec       = 180
+    API = [ordered]@{
+        Enabled = $false
+        Port    = 8099
+        Bind    = "+"
+    }
     NTFY = [ordered]@{
         Server           = ""
         Topic            = ""
@@ -721,6 +730,7 @@ $lastConfigCheck = Get-Date "2000-01-01"
 $cfg = $null
 $pathsOk = $false
 $issuesLast = @()
+$script:ApiInitialized = $false
 
 # -------------------------------
 # Process start commands
@@ -780,6 +790,480 @@ function Process-Commands {
 }
 
 
+# ===============================
+# REST API (Android companion app)
+# ===============================
+$script:ApiListener   = $null
+$script:ApiAsyncResult = $null
+$script:ApiSecretsFile = Join-Path $DataDir "api.secrets.json"
+$script:ApiRateLimit   = @{}  # IP -> { Failures, LockedUntil }
+
+function Initialize-ApiListener {
+    if (-not $ApiEnabled) {
+        # Check config-driven API enable
+        if ($cfg -and $cfg.API -and $cfg.API.Enabled -eq $true) {
+            # Config says enable
+        } else {
+            return
+        }
+    }
+
+    $port = $ApiPort
+    $bind = $ApiBind
+    if ($cfg -and $cfg.API) {
+        if ($cfg.API.Port)  { $port = [int]$cfg.API.Port }
+        if ($cfg.API.Bind)  { $bind = $cfg.API.Bind }
+    }
+
+    try {
+        $script:ApiListener = New-Object System.Net.HttpListener
+        $prefix = "http://${bind}:${port}/"
+        $script:ApiListener.Prefixes.Add($prefix)
+        $script:ApiListener.Start()
+        $script:ApiAsyncResult = $script:ApiListener.BeginGetContext($null, $null)
+        Log "REST API listening on $prefix"
+    } catch {
+        Log "ERROR: Failed to start REST API listener: $($_)"
+        $script:ApiListener = $null
+    }
+}
+
+function Get-OrCreateApiKey {
+    # Load or generate API key, stored as plaintext in api.secrets.json
+    # (DPAPI is Windows-only; for cross-platform compat we use a simple JSON file)
+    if (Test-Path -LiteralPath $script:ApiSecretsFile) {
+        try {
+            $secrets = Get-Content -LiteralPath $script:ApiSecretsFile -Raw | ConvertFrom-Json
+            if ($secrets.ApiKey) { return $secrets.ApiKey }
+        } catch { }
+    }
+
+    # Generate a 48-character random API key
+    $bytes = New-Object byte[] 36
+    [System.Security.Cryptography.RandomNumberGenerator]::Create().GetBytes($bytes)
+    $key = [Convert]::ToBase64String($bytes) -replace '[+/=]',''
+    $key = $key.Substring(0, [Math]::Min(48, $key.Length))
+
+    $obj = [ordered]@{ ApiKey = $key; CreatedAt = (Get-Date).ToString("o") }
+    try {
+        $json = $obj | ConvertTo-Json -Depth 4
+        Write-AtomicFile -Path $script:ApiSecretsFile -Content $json
+    } catch {
+        Log "ERROR: Failed to save API key: $($_)"
+    }
+
+    Log "REST API key generated. Key: $key"
+    return $key
+}
+
+function Test-ApiKeyValid {
+    param([string]$ProvidedKey)
+    $expectedKey = Get-OrCreateApiKey
+    return ($ProvidedKey -ceq $expectedKey)
+}
+
+function Test-ApiRateLimited {
+    param([string]$IP)
+    if (-not $script:ApiRateLimit.ContainsKey($IP)) { return $false }
+    $entry = $script:ApiRateLimit[$IP]
+    if ($entry.LockedUntil -and (Get-Date) -lt $entry.LockedUntil) { return $true }
+    if ($entry.LockedUntil -and (Get-Date) -ge $entry.LockedUntil) {
+        $script:ApiRateLimit.Remove($IP)
+        return $false
+    }
+    return $false
+}
+
+function Add-ApiAuthFailure {
+    param([string]$IP)
+    if (-not $script:ApiRateLimit.ContainsKey($IP)) {
+        $script:ApiRateLimit[$IP] = @{ Failures = 0; LockedUntil = $null }
+    }
+    $script:ApiRateLimit[$IP].Failures++
+    if ($script:ApiRateLimit[$IP].Failures -ge 10) {
+        $script:ApiRateLimit[$IP].LockedUntil = (Get-Date).AddMinutes(5)
+        Log "REST API: IP $IP locked out for 5 minutes (too many failed auth attempts)"
+    }
+}
+
+function Send-ApiResponse {
+    param(
+        [System.Net.HttpListenerResponse]$Response,
+        [int]$StatusCode = 200,
+        $Body = $null
+    )
+    try {
+        $Response.StatusCode = $StatusCode
+        $Response.ContentType = "application/json; charset=utf-8"
+        $Response.Headers.Add("Access-Control-Allow-Origin", "*")
+        $Response.Headers.Add("Access-Control-Allow-Headers", "X-API-Key, Content-Type")
+        $Response.Headers.Add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+
+        if ($null -ne $Body) {
+            $json = if ($Body -is [string]) { $Body } else { $Body | ConvertTo-Json -Depth 10 }
+            $buf = [System.Text.Encoding]::UTF8.GetBytes($json)
+            $Response.ContentLength64 = $buf.Length
+            $Response.OutputStream.Write($buf, 0, $buf.Length)
+        } else {
+            $Response.ContentLength64 = 0
+        }
+    } catch { } finally {
+        try { $Response.Close() } catch { }
+    }
+}
+
+function Get-ApiStatusPayload {
+    param($Cfg)
+
+    $portCheckTtl     = if ($Cfg) { [int]$Cfg.PortCheckTtlSec } else { 5 }
+    $portCheckFailTtl = if ($Cfg) { [int]$Cfg.PortCheckFailTtlSec } else { 15 }
+
+    $services = [ordered]@{}
+    foreach ($role in @("MySQL","Authserver","Worldserver")) {
+        $expPath = if ($Cfg) { [string]$Cfg.$role } else { "" }
+        $port    = if ($Cfg) { Get-RolePort -Cfg $Cfg -Role $role } else { 0 }
+        $running = Test-RoleHealthy -Role $role -ExpectedPath $expPath -Port $port -CacheTtlSec $portCheckTtl -NegativeCacheTtlSec $portCheckFailTtl
+        $held    = Is-RoleHeld -Role $role
+
+        $services[$role.ToLower()] = [ordered]@{
+            running = [bool]$running
+            healthy = [bool]$running
+            held    = [bool]$held
+        }
+    }
+
+    return [ordered]@{
+        timestamp         = (Get-Date).ToString("o")
+        watchdog          = [ordered]@{ state = "Running"; pid = $PID }
+        services          = $services
+        worldRestartCount = $WorldRestartCount
+        serverName        = if ($Cfg) { [string]$Cfg.ServerName } else { "" }
+        expansion         = if ($Cfg) { [string]$Cfg.Expansion } else { "Unknown" }
+    }
+}
+
+function Get-ApiConfigPayload {
+    param($Cfg)
+    if (-not $Cfg) { return @{ error = "No config loaded" } }
+    return [ordered]@{
+        serverName      = [string]$Cfg.ServerName
+        expansion       = [string]$Cfg.Expansion
+        mysqlPort       = [int]$Cfg.MySQLPort
+        authserverPort  = [int]$Cfg.AuthserverPort
+        worldserverPort = [int]$Cfg.WorldserverPort
+        ntfy            = [ordered]@{
+            server = [string]$Cfg.NTFY.Server
+            topic  = [string]$Cfg.NTFY.Topic
+        }
+    }
+}
+
+function Get-ApiLogsPayload {
+    param([int]$Lines = 50)
+    if (-not (Test-Path -LiteralPath $LogFile)) { return @{ lines = @() } }
+    try {
+        $all = Get-Content -LiteralPath $LogFile -Tail $Lines -Encoding UTF8 -ErrorAction Stop
+        return @{ lines = @($all) }
+    } catch {
+        return @{ lines = @(); error = "$($_)" }
+    }
+}
+
+function Invoke-ApiCommand {
+    param([string]$CommandName)
+    $cmdPath = Join-Path $CommandDir $CommandName
+    Write-AtomicFile -Path $cmdPath -Content ""
+    Log "REST API command sent: $CommandName"
+}
+
+# --- RA Console Proxy State ---
+$script:RaClient  = $null
+$script:RaStream  = $null
+$script:RaReader  = $null
+$script:RaWriter  = $null
+$script:RaBuffer  = New-Object System.Collections.Generic.List[string]
+
+function Connect-RaConsole {
+    param([string]$Host_, [int]$Port, [string]$Username, [string]$Password)
+    try {
+        Disconnect-RaConsole
+        $script:RaClient = New-Object System.Net.Sockets.TcpClient
+        $script:RaClient.Connect($Host_, $Port)
+        $script:RaStream = $script:RaClient.GetStream()
+        $script:RaStream.ReadTimeout = 500
+        $script:RaReader = New-Object System.IO.StreamReader($script:RaStream, [System.Text.Encoding]::UTF8)
+        $script:RaWriter = New-Object System.IO.StreamWriter($script:RaStream, [System.Text.Encoding]::UTF8)
+        $script:RaWriter.AutoFlush = $true
+        $script:RaBuffer.Clear()
+
+        # Read login prompt, send credentials
+        Start-Sleep -Milliseconds 300
+        Read-RaAvailable | Out-Null
+        $script:RaWriter.WriteLine($Username)
+        Start-Sleep -Milliseconds 300
+        Read-RaAvailable | Out-Null
+        $script:RaWriter.WriteLine($Password)
+        Start-Sleep -Milliseconds 500
+        Read-RaAvailable | Out-Null
+
+        return $true
+    } catch {
+        Log "REST API: RA console connect failed: $($_)"
+        Disconnect-RaConsole
+        return $false
+    }
+}
+
+function Disconnect-RaConsole {
+    try { if ($script:RaReader) { $script:RaReader.Dispose() } } catch { }
+    try { if ($script:RaWriter) { $script:RaWriter.Dispose() } } catch { }
+    try { if ($script:RaStream) { $script:RaStream.Dispose() } } catch { }
+    try { if ($script:RaClient) { $script:RaClient.Close(); $script:RaClient.Dispose() } } catch { }
+    $script:RaClient = $null
+    $script:RaStream = $null
+    $script:RaReader = $null
+    $script:RaWriter = $null
+}
+
+function Read-RaAvailable {
+    $lines = @()
+    if (-not $script:RaStream -or -not $script:RaClient -or -not $script:RaClient.Connected) { return $lines }
+    try {
+        while ($script:RaStream.DataAvailable) {
+            $line = $script:RaReader.ReadLine()
+            if ($null -ne $line) {
+                $lines += $line
+                $script:RaBuffer.Add($line)
+                # Keep buffer capped at 500 lines
+                while ($script:RaBuffer.Count -gt 500) { $script:RaBuffer.RemoveAt(0) }
+            }
+        }
+    } catch { }
+    return $lines
+}
+
+function Send-RaCommand {
+    param([string]$Command)
+    if (-not $script:RaWriter -or -not $script:RaClient -or -not $script:RaClient.Connected) {
+        return $false
+    }
+    try {
+        $script:RaWriter.WriteLine($Command)
+        return $true
+    } catch { return $false }
+}
+
+function Handle-ApiRequest {
+    param(
+        [System.Net.HttpListenerContext]$Context,
+        $Cfg
+    )
+
+    $req  = $Context.Request
+    $resp = $Context.Response
+    $path = $req.Url.AbsolutePath.TrimEnd('/')
+    $method = $req.HttpMethod.ToUpper()
+    $ip = $req.RemoteEndPoint.Address.ToString()
+
+    # CORS preflight
+    if ($method -eq "OPTIONS") {
+        Send-ApiResponse -Response $resp -StatusCode 204
+        return
+    }
+
+    # Health check (no auth required)
+    if ($path -eq "/api/v1/health" -and $method -eq "GET") {
+        Send-ApiResponse -Response $resp -StatusCode 200 -Body @{ status = "ok"; timestamp = (Get-Date).ToString("o") }
+        return
+    }
+
+    # Rate limit check
+    if (Test-ApiRateLimited -IP $ip) {
+        Send-ApiResponse -Response $resp -StatusCode 429 -Body @{ error = "Too many failed attempts. Try again later." }
+        return
+    }
+
+    # Auth check
+    $apiKey = $req.Headers["X-API-Key"]
+    if (-not $apiKey -or -not (Test-ApiKeyValid -ProvidedKey $apiKey)) {
+        Add-ApiAuthFailure -IP $ip
+        Send-ApiResponse -Response $resp -StatusCode 401 -Body @{ error = "Invalid or missing API key" }
+        return
+    }
+
+    # Route dispatch
+    try {
+        switch -Regex ($path) {
+            '^/api/v1/status$' {
+                if ($method -ne "GET") { Send-ApiResponse -Response $resp -StatusCode 405 -Body @{ error = "Method not allowed" }; return }
+                $payload = Get-ApiStatusPayload -Cfg $Cfg
+                Send-ApiResponse -Response $resp -StatusCode 200 -Body $payload
+            }
+            '^/api/v1/config$' {
+                if ($method -ne "GET") { Send-ApiResponse -Response $resp -StatusCode 405 -Body @{ error = "Method not allowed" }; return }
+                $payload = Get-ApiConfigPayload -Cfg $Cfg
+                Send-ApiResponse -Response $resp -StatusCode 200 -Body $payload
+            }
+            '^/api/v1/logs$' {
+                if ($method -ne "GET") { Send-ApiResponse -Response $resp -StatusCode 405 -Body @{ error = "Method not allowed" }; return }
+                $lines = 50
+                $qs = $req.QueryString["lines"]
+                if ($qs) { try { $lines = [Math]::Min([int]$qs, 500) } catch { } }
+                $payload = Get-ApiLogsPayload -Lines $lines
+                Send-ApiResponse -Response $resp -StatusCode 200 -Body $payload
+            }
+            '^/api/v1/services/(mysql|auth|world)/(start|stop|restart)$' {
+                if ($method -ne "POST") { Send-ApiResponse -Response $resp -StatusCode 405 -Body @{ error = "Method not allowed" }; return }
+                $roleKey = $Matches[1]
+                $action  = $Matches[2]
+                $cmdMap = @{
+                    "mysql-start"   = "command.start.mysql"
+                    "mysql-stop"    = "command.stop.mysql"
+                    "auth-start"    = "command.start.auth"
+                    "auth-stop"     = "command.stop.auth"
+                    "world-start"   = "command.start.world"
+                    "world-stop"    = "command.stop.world"
+                }
+                if ($action -eq "restart") {
+                    Invoke-ApiCommand -CommandName $cmdMap["$roleKey-stop"]
+                    Start-Sleep -Milliseconds 500
+                    Invoke-ApiCommand -CommandName $cmdMap["$roleKey-start"]
+                } else {
+                    Invoke-ApiCommand -CommandName $cmdMap["$roleKey-$action"]
+                }
+                Send-ApiResponse -Response $resp -StatusCode 200 -Body @{ ok = $true; action = $action; role = $roleKey }
+            }
+            '^/api/v1/services/start-all$' {
+                if ($method -ne "POST") { Send-ApiResponse -Response $resp -StatusCode 405 -Body @{ error = "Method not allowed" }; return }
+                Invoke-ApiCommand -CommandName "command.start.mysql"
+                Invoke-ApiCommand -CommandName "command.start.auth"
+                Invoke-ApiCommand -CommandName "command.start.world"
+                Send-ApiResponse -Response $resp -StatusCode 200 -Body @{ ok = $true; action = "start-all" }
+            }
+            '^/api/v1/services/stop-all$' {
+                if ($method -ne "POST") { Send-ApiResponse -Response $resp -StatusCode 405 -Body @{ error = "Method not allowed" }; return }
+                Invoke-ApiCommand -CommandName "command.stop.all"
+                Send-ApiResponse -Response $resp -StatusCode 200 -Body @{ ok = $true; action = "stop-all" }
+            }
+            '^/api/v1/services/(mysql|auth|world)/hold$' {
+                if ($method -ne "POST") { Send-ApiResponse -Response $resp -StatusCode 405 -Body @{ error = "Method not allowed" }; return }
+                $roleMap = @{ "mysql" = "MySQL"; "auth" = "Authserver"; "world" = "Worldserver" }
+                $role = $roleMap[$Matches[1]]
+                $holdFile = Get-HoldFile -Role $role
+                if (Test-Path $holdFile) {
+                    Remove-Item -LiteralPath $holdFile -Force -ErrorAction SilentlyContinue
+                    $held = $false
+                    Log "REST API: Hold removed for $role"
+                } else {
+                    Write-AtomicFile -Path $holdFile -Content ""
+                    $held = $true
+                    Log "REST API: Hold set for $role"
+                }
+                Send-ApiResponse -Response $resp -StatusCode 200 -Body @{ ok = $true; role = $role; held = $held }
+            }
+            '^/api/v1/console/connect$' {
+                if ($method -ne "POST") { Send-ApiResponse -Response $resp -StatusCode 405 -Body @{ error = "Method not allowed" }; return }
+                $body = ""
+                if ($req.HasEntityBody) {
+                    $reader = New-Object System.IO.StreamReader($req.InputStream, $req.ContentEncoding)
+                    $body = $reader.ReadToEnd()
+                    $reader.Dispose()
+                }
+                $params = @{}
+                if ($body) { try { $params = $body | ConvertFrom-Json } catch { } }
+                $raHost = if ($params.host) { $params.host } else { "127.0.0.1" }
+                $raPort = if ($params.port) { [int]$params.port } else { 3443 }
+                $raUser = if ($params.username) { $params.username } else { "" }
+                $raPass = if ($params.password) { $params.password } else { "" }
+                $ok = Connect-RaConsole -Host_ $raHost -Port $raPort -Username $raUser -Password $raPass
+                if ($ok) {
+                    Send-ApiResponse -Response $resp -StatusCode 200 -Body @{ ok = $true; connected = $true }
+                } else {
+                    Send-ApiResponse -Response $resp -StatusCode 500 -Body @{ ok = $false; error = "Failed to connect to RA console" }
+                }
+            }
+            '^/api/v1/console/send$' {
+                if ($method -ne "POST") { Send-ApiResponse -Response $resp -StatusCode 405 -Body @{ error = "Method not allowed" }; return }
+                $body = ""
+                if ($req.HasEntityBody) {
+                    $reader = New-Object System.IO.StreamReader($req.InputStream, $req.ContentEncoding)
+                    $body = $reader.ReadToEnd()
+                    $reader.Dispose()
+                }
+                $params = @{}
+                if ($body) { try { $params = $body | ConvertFrom-Json } catch { } }
+                $command = if ($params.command) { $params.command } else { "" }
+                if (-not $command) {
+                    Send-ApiResponse -Response $resp -StatusCode 400 -Body @{ error = "Missing 'command' field" }
+                    return
+                }
+                $ok = Send-RaCommand -Command $command
+                Start-Sleep -Milliseconds 300
+                $output = Read-RaAvailable
+                Send-ApiResponse -Response $resp -StatusCode 200 -Body @{ ok = $ok; output = @($output) }
+            }
+            '^/api/v1/console/output$' {
+                if ($method -ne "GET") { Send-ApiResponse -Response $resp -StatusCode 405 -Body @{ error = "Method not allowed" }; return }
+                $newLines = Read-RaAvailable
+                $sinceIdx = 0
+                $qs = $req.QueryString["since"]
+                if ($qs) { try { $sinceIdx = [int]$qs } catch { } }
+                $total = $script:RaBuffer.Count
+                $lines = @()
+                if ($sinceIdx -lt $total) {
+                    $lines = @($script:RaBuffer.GetRange($sinceIdx, $total - $sinceIdx))
+                }
+                $connected = ($null -ne $script:RaClient -and $script:RaClient.Connected)
+                Send-ApiResponse -Response $resp -StatusCode 200 -Body @{ lines = $lines; total = $total; connected = $connected }
+            }
+            '^/api/v1/console/disconnect$' {
+                if ($method -ne "POST") { Send-ApiResponse -Response $resp -StatusCode 405 -Body @{ error = "Method not allowed" }; return }
+                Disconnect-RaConsole
+                Send-ApiResponse -Response $resp -StatusCode 200 -Body @{ ok = $true; connected = $false }
+            }
+            default {
+                Send-ApiResponse -Response $resp -StatusCode 404 -Body @{ error = "Not found"; path = $path }
+            }
+        }
+    } catch {
+        Log "REST API error handling $method $path : $($_)"
+        Send-ApiResponse -Response $resp -StatusCode 500 -Body @{ error = "Internal server error" }
+    }
+}
+
+function Process-ApiRequests {
+    param($Cfg)
+    if (-not $script:ApiListener) { return }
+    # Process up to 5 pending requests per tick
+    for ($i = 0; $i -lt 5; $i++) {
+        if (-not $script:ApiAsyncResult) {
+            try { $script:ApiAsyncResult = $script:ApiListener.BeginGetContext($null, $null) } catch { return }
+        }
+        if ($script:ApiAsyncResult.IsCompleted) {
+            try {
+                $ctx = $script:ApiListener.EndGetContext($script:ApiAsyncResult)
+                $script:ApiAsyncResult = $null
+                Handle-ApiRequest -Context $ctx -Cfg $Cfg
+            } catch {
+                $script:ApiAsyncResult = $null
+                Log "REST API listener error: $($_)"
+            }
+        } else {
+            break
+        }
+    }
+}
+
+function Stop-ApiListener {
+    if ($script:ApiListener) {
+        try { $script:ApiListener.Stop() } catch { }
+        try { $script:ApiListener.Close() } catch { }
+        $script:ApiListener = $null
+        Log "REST API listener stopped."
+    }
+    Disconnect-RaConsole
+}
+
 # -------------------------------
 # Main loop
 # -------------------------------
@@ -790,6 +1274,7 @@ while ($true) {
             Log "Stop signal detected ($StopSignalFile). Initiating graceful shutdown."
 
             Stop-All-Gracefully -DelaySec $ShutdownDelaySec -Cfg $cfg
+            Stop-ApiListener
 
             Write-Heartbeat -State "Stopping" -Extra @{ reason = "StopSignal" }
             break
@@ -840,7 +1325,14 @@ while ($true) {
             }
         }
 
+        # Initialize REST API once config is loaded
+        if (-not $script:ApiInitialized) {
+            Initialize-ApiListener
+            $script:ApiInitialized = $true
+        }
+
         Process-Commands -Cfg $cfg
+        Process-ApiRequests -Cfg $cfg
 
         # Ensure roles (dependency order is enforced below).
         $portCheckTtlSec = [int]$cfg.PortCheckTtlSec
@@ -881,5 +1373,6 @@ if (Test-RoleHealthy -Role "Authserver" -ExpectedPath ([string]$cfg.Authserver) 
     }
 }
 
+Stop-ApiListener
 Log "Watchdog service stopped."
 Write-Heartbeat -State "Stopped" -Extra @{ reason = "Exited" }

@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <style name="Theme.WoWWatchdog" parent="android:Theme.Material.NoActionBar">
+        <item name="android:statusBarColor">#FF0D111A</item>
+        <item name="android:navigationBarColor">#FF0D111A</item>
+    </style>
+</resources>

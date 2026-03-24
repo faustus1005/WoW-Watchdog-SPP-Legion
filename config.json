@@ -10,6 +10,11 @@
     "PortCheckTtlSec":  5,
     "PortCheckFailTtlSec":  15,
     "PortWarmupSec":  180,
+    "API": {
+        "Enabled": false,
+        "Port": 8099,
+        "Bind": "+"
+    },
     "NTFY":  {
                  "Server":  "https://ntfy.sh",
                  "Topic": "wow-watchdog",
