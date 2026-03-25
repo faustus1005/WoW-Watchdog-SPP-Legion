@@ -4,13 +4,13 @@
   <img src="https://github.com/user-attachments/assets/a48882ba-a573-4765-9ef3-d49404111a5b" alt="WoW Watchdog logo" />
 </p>
 
-<p align="center"> <img src="https://img.shields.io/badge/PowerShell-5.1+-blue?logo=powershell&style=flat-square"/> <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-lightgrey?logo=windows&style=flat-square"/> <img src="https://img.shields.io/badge/Service-NSSM-success?style=flat-square"/> <img src="https://img.shields.io/badge/GUI-WPF-blueviolet?style=flat-square"/> <img src="https://img.shields.io/badge/Notifications-NTFY-orange?style=flat-square"/> <img src="https://img.shields.io/badge/Status-Stable-success?style=flat-square"/> </p>
+<p align="center"> <img src="https://img.shields.io/badge/PowerShell-5.1+-blue?logo=powershell&style=flat-square"/> <img src="https://img.shields.io/badge/Windows-10%20%7C%2011-lightgrey?logo=windows&style=flat-square"/> <img src="https://img.shields.io/badge/Android-8.0+-3DDC84?logo=android&style=flat-square"/> <img src="https://img.shields.io/badge/Service-NSSM-success?style=flat-square"/> <img src="https://img.shields.io/badge/GUI-WPF-blueviolet?style=flat-square"/> <img src="https://img.shields.io/badge/Notifications-NTFY-orange?style=flat-square"/> <img src="https://img.shields.io/badge/Status-Stable-success?style=flat-square"/> </p>
 
 ## 📖 Overview
 
 WoW-Watchdog is a robust PowerShell-based application designed to monitor the status of your favorite World of Warcraft private servers. WoW-Watchdog provides timely notifications, ensuring you're always informed using NTFY integration.
 
-This tool runs quietly in the background, periodically checking specified servers and alerting you to changes such as a server going offline, or optionally, when the server is back online.
+This tool runs quietly in the background, periodically checking specified servers and alerting you to changes such as a server going offline, or optionally, when the server is back online. An **Android companion app** lets you monitor and control your server from your phone via the built-in REST API.
 
 It is geared mostly towards the SPP Legion Repack, so many of the features will not work with other repacks without modification, but the core feature of starting/stopping/notifying should work for most WoW Private servers.
 
@@ -33,6 +33,18 @@ It is geared mostly towards the SPP Legion Repack, so many of the features will 
   - View console output in-app
   - Send commands from the launcher
 - Live log viewing of your servers various log files
+
+### REST API & Android Companion App
+- Built-in REST API for remote monitoring and control (disabled by default)
+- API key authentication with rate limiting and IP lockout
+- **Android companion app** (Kotlin / Jetpack Compose):
+  - Real-time dashboard with service status cards
+  - Start, stop, restart, and hold individual services or all at once
+  - Worldserver RA console access from your phone
+  - Live log viewer
+  - NTFY push notification configuration
+  - Configurable polling interval and expansion-themed UI
+  - Requires Android 8.0+ (API 26)
 
 ### Notifications & Security
 - **NTFY** notifications with:
@@ -81,10 +93,8 @@ Need more detail? Check out the dedicated getting started guide: [docs/getting-s
 
 ### Prerequisites
 
-*   **PowerShell**:
-    
-    *   Windows PowerShell 5.1 (or newer)
-        
+*   **PowerShell**: Windows PowerShell 5.1 (or newer)
+*   **Android app** (optional): Android 8.0+ (API 26) and network access to the watchdog host
 
 ### Installation
 
@@ -99,6 +109,11 @@ Need more detail? Check out the dedicated getting started guide: [docs/getting-s
    2. Fill out the NTFY server information and update the topic/tags as required.
    3. Select your auth mode (Basic or Token). For Basic, enter a username and password; for Token, paste your token.
    4. Click **Save Config** to persist settings for the next launch.
+6. **Optional: Enable the REST API for the Android companion app.**
+   1. Set `"Enabled": true` in the `API` section of `config.json`.
+   2. Restart the watchdog service. An API key is generated automatically and saved to `api.secrets.json`.
+   3. Install the Android app, enter your server's IP, port (default `8099`), and the API key from `api.secrets.json`.
+   4. Tap **Test Connection** to verify. See [docs/getting-started.md](docs/getting-started.md) for full details.
 
 ##  License
 
