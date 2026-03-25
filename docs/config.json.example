@@ -4,6 +4,15 @@
     "MySQL":  "",
     "Authserver":  "",
     "Worldserver":  "",
+    "MySQLPort": 3310,
+    "AuthserverPort": 1119,
+    "WorldserverPort": 8086,
+    "PortCheckTtlSec": 5,
+    "API": {
+        "Enabled": false,
+        "Port": 8099,
+        "Bind": "+"
+    },
     "NTFY":  {
                  "Server":  "https://ntfy.sh",
                  "Topic": "wow-watchdog",
